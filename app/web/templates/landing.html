@@ -4,7 +4,7 @@
 <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-line" style="top:env(safe-area-inset-top,0px)">
   <div class="container h-16 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-2.5 font-display font-bold text-lg"><img src="/static/icons/icon-192.png" class="w-8 h-8 rounded-lg" alt="">SafeRoad</a>
-    <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-muted"><a href="#how" class="hover:text-ink">How it works</a><a href="#answers" class="hover:text-ink">Why trust it</a><a href="#responders" class="hover:text-ink">For responders</a><a href="#install" class="hover:text-ink">Install</a></nav>
+    <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-muted"><a href="#agent" class="hover:text-ink">The agent</a><a href="#how" class="hover:text-ink">How it works</a><a href="#answers" class="hover:text-ink">Why trust it</a><a href="#responders" class="hover:text-ink">For responders</a><a href="#install" class="hover:text-ink">Install</a></nav>
     <div class="flex items-center gap-2">
       {% if user %}<a href="/chat" class="btn btn-primary btn-sm">Open app {{ icon('arrow-right','w-4 h-4') }}</a>
       {% else %}<a href="/login" class="btn btn-ghost btn-sm hidden sm:inline-flex">Log in</a><a href="/signup" class="btn btn-primary btn-sm">Get started</a>{% endif %}
@@ -14,17 +14,17 @@
 
 <section class="container pt-14 pb-10 lg:pt-20 lg:pb-16 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
   <div>
-    <span class="eyebrow">{{ icon('shield','w-3.5 h-3.5') }} Verified · Multilingual · Real-time</span>
+    <span class="eyebrow">{{ icon('sparkles','w-3.5 h-3.5') }} An AI agent for community safety</span>
     <h1 class="font-display font-extrabold text-[2.6rem] leading-[1.05] sm:text-6xl mt-5 text-balance">Is the road home safe <span class="text-brand-600">right now?</span></h1>
-    <p class="text-lg text-muted mt-5 max-w-xl leading-relaxed">Rumours move faster than the truth. SafeRoad tells you only what your community's responders have actually confirmed, who said it, and how long ago. Ask by voice in Yorùbá, Hausa, Igbo, Pidgin or English.</p>
+    <p class="text-lg text-muted mt-5 max-w-xl leading-relaxed">SafeRoad is an AI agent that sits between your community's responders and everyone else. It listens in Yorùbá, Hausa, Igbo, Pidgin or English, checks every rumour against what responders have actually confirmed, publishes verified alerts to the whole town in seconds, and tells you who said it and how long ago. Never a guess.</p>
     <div class="mt-8 flex flex-col sm:flex-row gap-3">
       <a href="/signup?role=resident" class="btn btn-primary btn-lg">{{ icon('user','w-5 h-5') }} I live here</a>
       <a href="/signup?role=responder" class="btn btn-ghost btn-lg">{{ icon('shield','w-5 h-5') }} I'm a responder</a>
     </div>
     <div class="mt-8 flex items-center gap-5 text-sm text-muted">
-      <span class="flex items-center gap-1.5">{{ icon('bell','w-4 h-4 text-brand-600') }} Push alerts</span>
+      <span class="flex items-center gap-1.5">{{ icon('sparkles','w-4 h-4 text-brand-600') }} Agent with tools</span>
       <span class="flex items-center gap-1.5">{{ icon('mic','w-4 h-4 text-brand-600') }} Voice in, voice out</span>
-      <span class="flex items-center gap-1.5">{{ icon('smartphone','w-4 h-4 text-brand-600') }} No download</span>
+      <span class="flex items-center gap-1.5">{{ icon('bell','w-4 h-4 text-brand-600') }} Push alerts</span>
     </div>
   </div>
   <div class="flex justify-center lg:justify-end">
@@ -44,7 +44,7 @@
   <div class="container py-10 grid sm:grid-cols-3 gap-6 text-center">
     <div><p class="font-display font-extrabold text-3xl">&lt; 10s</p><p class="text-sm text-muted mt-1">from a responder's voice note to every phone in town</p></div>
     <div><p class="font-display font-extrabold text-3xl">5</p><p class="text-sm text-muted mt-1">languages, spoken and written, auto-detected</p></div>
-    <div><p class="font-display font-extrabold text-3xl">0</p><p class="text-sm text-muted mt-1">guesses. Every answer names who confirmed it and when</p></div>
+    <div><p class="font-display font-extrabold text-3xl">6</p><p class="text-sm text-muted mt-1">tools the agent can run on its own, from verifying a rumour to waking up responders</p></div>
   </div>
 </section>
 
@@ -54,13 +54,41 @@
   <p class="mt-4 text-ink font-medium">SafeRoad is the bridge from the radio circle to the town.</p></div>
 </section>
 
+
+<section id="agent" class="container pb-16">
+  <div class="grid lg:grid-cols-[1fr_1.1fr] gap-10 items-start">
+    <div>
+      <span class="eyebrow">{{ icon('sparkles','w-3.5 h-3.5') }} The agent</span>
+      <h2 class="font-display font-bold text-3xl mt-4 text-balance">Not a chatbot. An agent that acts.</h2>
+      <p class="text-muted mt-4 leading-relaxed">Every message, typed or spoken, goes to the SafeRoad agent. It works out what the person means in their language, remembers what they asked before, checks the community's live record of responder reports, decides which tools to run, and then replies with text and a native voice. It never invents an answer: if no responder has reported something, it says so and goes to find out.</p>
+      <div class="mt-6 grid gap-3">
+        <div class="flex gap-3"><span class="step-n">1</span><div><p class="font-semibold">Understand</p><p class="text-sm text-muted">Transcribes voice notes in five languages, follows the conversation, resolves follow-ups like "any update?"</p></div></div>
+        <div class="flex gap-3"><span class="step-n">2</span><div><p class="font-semibold">Verify</p><p class="text-sm text-muted">Matches the question against what responders have confirmed in the last 24 hours, and grades it: confirmed, contradicted, unconfirmed, or no information.</p></div></div>
+        <div class="flex gap-3"><span class="step-n">3</span><div><p class="font-semibold">Act</p><p class="text-sm text-muted">Runs the right tool: publish an alert, translate it for every resident, wake up responders, file a report, or hand over an on-duty responder's number.</p></div></div>
+        <div class="flex gap-3"><span class="step-n">4</span><div><p class="font-semibold">Speak</p><p class="text-sm text-muted">Replies in the person's language, in text and in a native Nigerian voice, and notifies everyone who needs to know.</p></div></div>
+      </div>
+    </div>
+    <div class="feature bg-surface">
+      <p class="text-xs font-bold tracking-widest uppercase text-muted">Tools the agent can run</p>
+      <div class="mt-4 grid sm:grid-cols-2 gap-3">
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('megaphone','w-4 h-4 text-brand-600') }} post_alert</div><p class="text-sm text-muted mt-1">Turns a responder's words into a structured alert and broadcasts it to every resident in their own language.</p></div>
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('check-circle','w-4 h-4 text-brand-600') }} verify_rumour</div><p class="text-sm text-muted mt-1">Checks a message a resident received against the live responder record and grades it honestly.</p></div>
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('help','w-4 h-4 text-brand-600') }} escalate_to_responders</div><p class="text-sm text-muted mt-1">When nobody has reported it yet, forwards the question to responders and replies to the asker when one answers.</p></div>
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('phone','w-4 h-4 text-brand-600') }} connect_on_duty</div><p class="text-sm text-muted mt-1">Offers a tap-to-call button for the responder currently on duty, so nobody waits for an answer.</p></div>
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('globe','w-4 h-4 text-brand-600') }} translate</div><p class="text-sm text-muted mt-1">Yorùbá, Hausa, Igbo, Pidgin and English, both ways, so a Hausa voice note becomes a Yorùbá alert.</p></div>
+        <div class="live-card"><div class="flex items-center gap-2 font-semibold">{{ icon('zap','w-4 h-4 text-brand-600') }} all_clear</div><p class="text-sm text-muted mt-1">Closes an open alert when a responder says it's over, and updates everyone who asked about it.</p></div>
+      </div>
+      <p class="text-xs text-muted mt-4">Built on Nigerian-language speech models for voice in and out, and a reasoning model that plans and runs these tools.</p>
+    </div>
+  </div>
+</section>
 <section id="how" class="container pb-16">
   <span class="eyebrow">How it works</span>
   <h2 class="font-display font-bold text-3xl mt-4">Three steps, no training needed</h2>
   <div class="grid md:grid-cols-3 gap-5 mt-8">
-    <div class="feature"><span class="ico">{{ icon('mic','w-5 h-5') }}</span><h3 class="font-display font-bold text-lg mt-4">Responders speak</h3><p class="text-muted mt-2 leading-relaxed">A vigilante member sees something and taps the mic: "Fight near the market, avoid it." In any language. The assistant turns it into a clear, structured alert.</p></div>
+    <div class="feature"><span class="ico">{{ icon('mic','w-5 h-5') }}</span><h3 class="font-display font-bold text-lg mt-4">Responders speak</h3><p class="text-muted mt-2 leading-relaxed">A vigilante member sees something and taps the mic: "Fight near the market, avoid it." In any language. The agent turns it into a clear, structured alert and decides who needs to hear it.</p></div>
     <div class="feature"><span class="ico">{{ icon('bell','w-5 h-5') }}</span><h3 class="font-display font-bold text-lg mt-4">Everyone hears, instantly</h3><p class="text-muted mt-2 leading-relaxed">Every resident's phone buzzes, in their own language, even with the app closed. The alert lands in their chat with who said it and when.</p></div>
-    <div class="feature"><span class="ico">{{ icon('chat','w-5 h-5') }}</span><h3 class="font-display font-bold text-lg mt-4">Ask before you panic</h3><p class="text-muted mt-2 leading-relaxed">Heard a rumour? Forward it to SafeRoad. It answers only from responder reports, and if nobody knows yet it asks them for you and gives you someone to call.</p></div>
+    <div class="feature"><span class="ico">{{ icon('chat','w-5 h-5') }}</span><h3 class="font-display font-bold text-lg mt-4">Ask before you panic</h3><p class="text-muted mt-2 leading-relaxed">Heard a rumour? Forward it to the agent. It answers only from responder reports, and if nobody knows yet it escalates to responders for you and gives you someone to call.</p></div>
   </div>
 </section>
 
@@ -68,7 +96,7 @@
   <div class="container py-16">
     <span class="eyebrow">Why trust it</span>
     <h2 class="font-display font-bold text-3xl mt-4">Four honest answers. Never a guess.</h2>
-    <p class="text-muted mt-3 max-w-2xl">The assistant is not allowed to say "safe" or "true" on its own. It reports what responders reported, and says so when it doesn't know.</p>
+    <p class="text-muted mt-3 max-w-2xl">The agent is not allowed to say "safe" or "true" on its own. It reports what responders reported, names them, and says so when it doesn't know.</p>
     <div class="grid sm:grid-cols-2 gap-4 mt-8">
       <div class="answer"><span class="chip st-confirmed">Confirmed</span><p class="mt-3">"Musa confirmed a fight near the market 12 minutes ago. Avoid Kaduna road."</p></div>
       <div class="answer"><span class="chip st-contradicted">Contradicted</span><p class="mt-3">"Musa reported the market clear 8 minutes ago. The message you received is not confirmed."</p></div>
@@ -79,7 +107,7 @@
 </section>
 
 <section id="responders" class="container py-16 grid lg:grid-cols-2 gap-10 items-center">
-  <div><span class="eyebrow">For responders</span><h2 class="font-display font-bold text-3xl mt-4 text-balance">One voice note reaches the whole town</h2>
+  <div><span class="eyebrow">For responders</span><h2 class="font-display font-bold text-3xl mt-4 text-balance">One voice note, and the agent reaches the whole town</h2>
     <ul class="mt-6 space-y-4 text-muted">
       <li class="flex gap-3">{{ icon('check-circle','w-5 h-5 text-brand-600 shrink-0 mt-0.5') }}<span>Speak in your language. Residents receive it in theirs.</span></li>
       <li class="flex gap-3">{{ icon('check-circle','w-5 h-5 text-brand-600 shrink-0 mt-0.5') }}<span>Say "all clear" and the alert closes for everyone.</span></li>

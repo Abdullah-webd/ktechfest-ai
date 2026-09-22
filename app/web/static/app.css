@@ -140,3 +140,5 @@ select:not([hidden]){background-image:url("data:image/svg+xml,%3Csvg xmlns='http
 @keyframes blink{50%{opacity:.2}}
 @keyframes vb{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+section[id]{scroll-margin-top:5rem}
