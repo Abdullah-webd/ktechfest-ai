@@ -65,12 +65,14 @@ async def handle_turn(*, user: User, text: Optional[str], audio: Optional[bytes]
             await tools.deliver(user, reply)
             return {"ok": True, "user_message": common.message_to_dict(user_msg), "reply": common.message_to_dict(reply), "autoplay": False}
         cands = []
-        if tr["auto"]:
-            cands.append(f"Transcript candidate A (language auto-detected): {tr['auto']}")
-        if tr["hinted"] and tr["hinted"] != tr["auto"]:
-            cands.append(f"Transcript candidate B (assuming {LANGUAGES.get(tr['hint_lang'], tr['hint_lang'])}): {tr['hinted']}")
+        if tr["hinted"]:
+            cands.append(f"Transcript candidate A (assuming {LANGUAGES.get(tr['hint_lang'], tr['hint_lang'])}): {tr['hinted']}")
+        if tr["auto"] and tr["auto"] != tr["hinted"]:
+            cands.append(f"Transcript candidate B (assuming English): {tr['auto']}")
         message_for_agent = "\n".join(cands)
         transcript = tr["hinted"] or tr["auto"]
+        if not cands:
+            message_for_agent = transcript
         user_msg.text = transcript
         await update(messages, user_msg.id, {"text": transcript})
         broker.publish("message", common.message_to_dict(user_msg), audience=f"user:{user.id}")

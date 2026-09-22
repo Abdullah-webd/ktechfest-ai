@@ -21,6 +21,7 @@ TTS_LANG = {"en": "en", "yo": "yo", "ha": "ha", "ig": "ig", "pcm": "pi"}
 STT_LANG = {"en": "en", "yo": "yo", "ha": "ha", "ig": "ig", "pcm": "en"}
 VOICE = {"en": "lucy", "yo": "sade", "ha": "amina", "ig": "ngozi", "pcm": "tega"}
 CHUNK_SECONDS = 20
+_sem = asyncio.Semaphore(3)  # Spitch Tier 1 allows 3 concurrent requests
 
 
 def _chunks(audio: bytes) -> list[bytes]:
@@ -47,7 +48,8 @@ def _chunks(audio: bytes) -> list[bytes]:
 
 
 async def _one(chunk: bytes, language: Optional[str]) -> str:
-    res = await _client.speech.transcribe(content=chunk, language=language) if language else await _client.speech.transcribe(content=chunk)
+    async with _sem:
+        res = await _client.speech.transcribe(content=chunk, language=language) if language else await _client.speech.transcribe(content=chunk)
     return (res.text or "").strip()
 
 
@@ -62,9 +64,11 @@ async def transcribe(audio: bytes, *, hint_lang: Optional[str] = None) -> dict:
     hint = STT_LANG.get(hint_lang or "", "en")
     auto = hinted = ""
     if _client:
-        res = await asyncio.gather(_variant(chunks, None), _variant(chunks, hint), return_exceptions=True)
-        auto = res[0] if isinstance(res[0], str) else ""
-        hinted = res[1] if isinstance(res[1], str) else ""
+        # Two candidates: the speaker's own language and English (people mix both). Auto-detect garbles accented English.
+        langs = [hint] + (["en"] if hint != "en" else [])
+        res = await asyncio.gather(*[_variant(chunks, l) for l in langs], return_exceptions=True)
+        hinted = res[0] if isinstance(res[0], str) else ""
+        auto = res[1] if len(res) > 1 and isinstance(res[1], str) else ""
         for r in res:
             if isinstance(r, Exception):
                 log.warning("spitch transcribe failed: %s", str(r)[:100])
