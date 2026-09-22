@@ -181,6 +181,8 @@ async def verify_page(request: Request, user: Optional[User] = Depends(optional_
 async def verify(request: Request, code: str = Form(...), user: Optional[User] = Depends(optional_user)):
     if not user:
         return RedirectResponse("/login", status_code=303)
+    if user.verified:
+        return RedirectResponse("/chat", status_code=303)
     if await check_otp(user, code, "verify"):
         await update(users, user.id, {"verified": True})
         await clear_otp(user)
@@ -212,8 +214,8 @@ async def _welcome_message(user: User) -> Message:
     text = en
     if user.language != "en":
         try:
-            from . import gemini
-            text = (await gemini.translate_many(en, [user.language], style="friendly welcome message")).get(user.language) or en
+            from . import agent, speech
+            text = (await agent.translate_many(en, [user.language], style="friendly welcome message")).get(user.language) or en
         except Exception:  # noqa: BLE001
             pass
     return Message(user_id=user.id, role="assistant", kind="system", text=text, text_en=en, language=user.language)

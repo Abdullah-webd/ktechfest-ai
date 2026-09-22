@@ -5,7 +5,7 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-from .. import gemini
+from .. import agent
 from ..config import settings
 from ..db import Alert, Message, Question, User, alerts, find, get, insert, messages, oid, questions, update, users, utcnow
 from ..notify import broker, push_to_users
@@ -20,7 +20,7 @@ async def _translations(text_en: str, langs: list[str], *, style: str) -> dict[s
     out = {"en": text_en}
     if need:
         try:
-            out.update(await gemini.translate_many(text_en, need, style=style))
+            out.update(await agent.translate_many(text_en, need, style=style))
         except Exception:  # noqa: BLE001
             log.exception("translation failed")
     return out
@@ -60,7 +60,7 @@ async def post_alert(author: User, *, category: str, severity: str, location: st
     need = [l for l in langs if not tr.get(l)]
     if need:
         try:
-            tr.update(await gemini.translate_many(summary_en, need))
+            tr.update(await agent.translate_many(summary_en, need))
         except Exception:  # noqa: BLE001
             log.exception("translation failed")
     alert.translations = tr
@@ -102,7 +102,7 @@ async def _answer_waiting(question_id: str, a: Alert, author: User) -> None:
     local = answer_en
     if asker.language != "en":
         try:
-            local = (await gemini.translate_many(answer_en, [asker.language], style="reply to a worried resident")).get(asker.language) or answer_en
+            local = (await agent.translate_many(answer_en, [asker.language], style="reply to a worried resident")).get(asker.language) or answer_en
         except Exception:  # noqa: BLE001
             log.exception("translate answer failed")
     await update(questions, q.id, {"status": status, "resolved_alert_id": a.id, "matched_alert_ids": [a.id]})
@@ -126,7 +126,7 @@ async def dismiss_report(author: User, *, report_ids: list, note_en: str = "") -
         local = text_en
         if reporter.language != "en":
             try:
-                local = (await gemini.translate_many(text_en, [reporter.language], style="reply to a resident")).get(reporter.language) or text_en
+                local = (await agent.translate_many(text_en, [reporter.language], style="reply to a resident")).get(reporter.language) or text_en
             except Exception:  # noqa: BLE001
                 pass
         await deliver(reporter, Message(user_id=reporter.id, role="assistant", kind="update", text=local, text_en=text_en,

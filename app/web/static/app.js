@@ -14,10 +14,13 @@
   S.togglePw = (id, btn) => { const i = $(id); i.type = i.type === 'password' ? 'text' : 'password'; btn.classList.toggle('text-brand-600', i.type === 'text'); };
   S.previewPhoto = (input) => { const f = input.files && input.files[0]; if (!f) return; const img = $('photo-preview'); img.src = URL.createObjectURL(f); img.hidden = false; $('photo-placeholder').hidden = true; };
   S.otp = (boxId, hiddenId, formId) => {
-    const box = $(boxId); if (!box) return; const inputs = [...box.querySelectorAll('input')]; const hidden = $(hiddenId);
-    const sync = () => { hidden.value = inputs.map((i) => i.value).join(''); if (formId && hidden.value.length === 6) $(formId).submit(); };
+    const box = $(boxId); if (!box) return; const inputs = [...box.querySelectorAll('input')]; const hidden = $(hiddenId); let submitted = false;
+    const form = formId ? $(formId) : inputs[0].closest('form');
+    if (form) form.addEventListener('submit', (e) => { if (submitted) { e.preventDefault(); return; } submitted = true; const b = form.querySelector('button[type=submit]'); if (b) { b.disabled = true; b.textContent = 'Checking…'; } });
+    const fillFrom = (start, digits) => { [...digits].forEach((c, j) => { if (inputs[start + j]) inputs[start + j].value = c; }); (inputs[Math.min(start + digits.length, 5)]).focus(); };
+    const sync = () => { hidden.value = inputs.map((i) => i.value).join(''); if (formId && hidden.value.length === 6 && !submitted) form.requestSubmit(); };
     inputs.forEach((inp, i) => {
-      inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(-1); if (inp.value && inputs[i + 1]) inputs[i + 1].focus(); sync(); });
+      inp.addEventListener('input', () => { const digits = inp.value.replace(/\D/g, ''); if (digits.length > 1) { inp.value = ''; fillFrom(i, digits.slice(0, 6 - i)); } else { inp.value = digits; if (digits && inputs[i + 1]) inputs[i + 1].focus(); } sync(); });
       inp.addEventListener('keydown', (e) => { if (e.key === 'Backspace' && !inp.value && inputs[i - 1]) inputs[i - 1].focus(); });
       inp.addEventListener('paste', (e) => { const t = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6); if (!t) return; e.preventDefault(); [...t].forEach((c, j) => { if (inputs[j]) inputs[j].value = c; }); (inputs[t.length] || inputs[5]).focus(); sync(); });
     });
@@ -122,7 +125,8 @@
   const hideTyping = () => { if (typingEl) { typingEl.remove(); typingEl = null; } };
 
   // ---------- sending ----------
-  let pendingLocal = null;
+  let pendingLocal = null, queued = [];
+  const flushQueued = () => { const q = queued; queued = []; q.forEach((d) => S.renderMessage(d)); };
   S.submitText = (e) => { e.preventDefault(); const ta = $('text-input'); const text = ta.value.trim(); if (!text) return false; ta.value = ''; S.autosize(ta); const fd = new FormData(); fd.append('text', text); S.send(fd, { text }); return false; };
   S.send = async (fd, local) => {
     const tempId = 'tmp-' + Date.now();
@@ -132,10 +136,10 @@
       const r = await fetch('/api/chat', { method: 'POST', body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'Request failed');
-      if (pendingLocal) { pendingLocal.remove(); pendingLocal = null; }
-      S.renderMessage(data.user_message); hideTyping(); S.renderMessage(data.reply);
-      if (data.autoplay) S.wantAutoplay = data.reply.id;
-    } catch (e) { hideTyping(); if (pendingLocal) { pendingLocal.querySelector('.meta').textContent = 'not sent'; } S.toast(e.message, 7000); }
+      if (pendingLocal) { pendingLocal.dataset.id = data.user_message.id; pendingLocal = null; }
+      S.renderMessage(data.user_message); hideTyping(); S.renderMessage(data.reply); flushQueued();
+      if (data.autoplay) { S.wantAutoplay = data.reply.id; const btn = chat().querySelector(`[data-id="${data.reply.id}"] button[data-audio]`); if (btn && btn.dataset.audio) { S.wantAutoplay = null; S.speak(data.reply.id, btn); } }
+    } catch (e) { hideTyping(); if (pendingLocal) { pendingLocal.querySelector('.meta').textContent = 'not sent'; pendingLocal = null; } flushQueued(); S.toast(e.message, 7000); }
   };
 
   // ---------- voice recording: raw PCM -> WAV ----------
@@ -189,7 +193,7 @@
   S.chatInit = () => {
     scrollToEnd();
     S.onEvent = (ev, d) => {
-      if (ev === 'message') { if (d.role === 'user' && pendingLocal) return; S.renderMessage(d); if (d.kind === 'alert') S.toast((d.alert && d.alert.author ? d.alert.author + ': ' : '') + d.text, 6000); if (d.kind === 'escalation') S.toast(d.text, 6000); if (d.kind === 'update') S.toast('Update: ' + d.text, 6000); }
+      if (ev === 'message') { if (pendingLocal && (d.role === 'user' || d.kind === 'answer' || d.kind === 'readback')) { queued.push(d); return; } S.renderMessage(d); if (d.kind === 'alert') S.toast((d.alert && d.alert.author ? d.alert.author + ': ' : '') + d.text, 6000); if (d.kind === 'escalation') S.toast(d.text, 6000); if (d.kind === 'update') S.toast('Update: ' + d.text, 6000); }
       if (ev === 'message_audio') { const btn = chat().querySelector(`[data-id="${d.id}"] button[data-audio]`); if (btn) btn.dataset.audio = d.audio_url; if (S.wantAutoplay === d.id && btn) { S.wantAutoplay = null; S.speak(d.id, btn); } }
       if (ev === 'new_alert') { const list = $('live-list'); if (list) { $('live-empty')?.remove(); if (!list.querySelector(`[data-alert-id="${d.id}"]`)) list.insertAdjacentHTML('afterbegin', S.alertCardHTML(d)); } }
       if (ev === 'escalation') { const list = $('waiting-list'); if (list) { $('waiting-empty')?.remove(); list.insertAdjacentHTML('afterbegin', `<div class="live-card text-sm" data-question-id="${d.id}"><p class="font-medium">${S.esc(d.text_en)}</p><p class="text-xs text-muted mt-1">${S.esc(d.asker)} · just now${d.location ? ' · ' + S.esc(d.location) : ''}</p></div>`); const c = $('waiting-count'); if (c) c.textContent = list.children.length; } }

@@ -1,5 +1,5 @@
-const CACHE = 'saferoad-v4';
-const SHELL = ['/static/app.js?v=4', '/static/app.css?v=4', '/static/icons/icon-192.png', '/static/icons/icon-512.png', '/manifest.webmanifest'];
+const CACHE = 'saferoad-v5';
+const SHELL = ['/static/app.js?v=5', '/static/app.css?v=5', '/static/icons/icon-192.png', '/static/icons/icon-512.png', '/manifest.webmanifest'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
