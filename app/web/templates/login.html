@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Log in · SafeRoad{% endblock %}
+{% block body %}
+<div class="glow min-h-screen">
+<div class="max-w-md mx-auto px-5 py-8">
+  <a href="/" class="flex items-center gap-2 font-extrabold text-lg mb-8"><img src="/static/icons/icon-192.png" class="w-8 h-8 rounded-lg" alt="">SafeRoad</a>
+  <h1 class="text-3xl font-extrabold">Welcome back</h1>
+  {% if error %}<div class="mt-4 p-3 rounded-xl bg-rose/15 text-rose-200 text-sm border border-rose/30">{{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="card p-5 mt-6 space-y-4">
+    <div><label class="text-sm text-gray-300">Email</label><input name="email" type="email" required class="mt-1"></div>
+    <div><label class="text-sm text-gray-300">Password</label><input name="password" type="password" required class="mt-1"></div>
+    <button class="btn btn-amber w-full text-base py-4">Log in</button>
+    <p class="text-center text-sm text-gray-400">New here? <a href="/signup" class="text-amber underline">Create an account</a></p>
+  </form>
+</div></div>
+{% endblock %}

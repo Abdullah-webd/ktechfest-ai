@@ -1,0 +1,14 @@
+bcrypt==5.0.0
+dnspython==2.8.0
+fastapi==0.141.1
+google-genai==2.24.0
+httpx==0.28.1
+itsdangerous==2.2.0
+jinja2==3.1.6
+py-vapid==1.9.4
+pydantic-settings==2.15.0
+pymongo==4.18.1
+python-multipart==0.0.32
+pywebpush==2.5.0
+sse-starlette==3.4.11
+uvicorn==0.53.0

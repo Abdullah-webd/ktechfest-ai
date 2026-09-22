@@ -1,0 +1,20 @@
+{% macro alert_card(a, me_lang) -%}
+<article class="card p-4 fade-in" data-alert-id="{{ a.id }}">
+  <div class="flex items-start justify-between gap-2">
+    <div class="flex gap-2 flex-wrap items-center">
+      {% if a.category=='all_clear' %}<span class="badge cat-all_clear">All clear</span>{% else %}<span class="badge sev-{{ a.severity }}">{{ a.severity }}</span><span class="badge bg-white/5 text-gray-300">{{ a.category.replace('_',' ') }}</span>{% endif %}
+      {% if a.status=='closed' %}<span class="badge bg-white/5 text-gray-400">closed</span>{% endif %}
+    </div>
+    <span class="text-xs text-gray-400 whitespace-nowrap">{{ a.time }} · {{ a.ago }}</span>
+  </div>
+  {% if a.location %}<p class="mt-2 font-semibold">📍 {{ a.location }}</p>{% endif %}
+  <p class="mt-1 text-gray-200">{{ a.translations.get(me_lang) or a.summary_en }}</p>
+  <div class="mt-3 flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2 text-xs text-gray-400">
+      {% if a.author_photo %}<img src="{{ a.author_photo }}" class="w-6 h-6 rounded-full object-cover" alt="">{% else %}<span class="w-6 h-6 rounded-full bg-amber/20 text-amber flex items-center justify-center text-[10px] font-bold">{{ a.author[:1] }}</span>{% endif %}
+      <span>Confirmed by <b class="text-gray-200">{{ a.author }}</b></span>
+    </div>
+    <button class="btn btn-ghost text-xs py-1.5 px-3" onclick="SafeRoad.speak('alert', '{{ a.id }}', this)">🔊 Listen</button>
+  </div>
+</article>
+{%- endmacro %}

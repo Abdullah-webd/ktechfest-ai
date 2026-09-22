@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Live · SafeRoad{% endblock %}
+{% block body %}
+<main class="max-w-7xl mx-auto px-4 py-5">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <a href="/" class="flex items-center gap-2 font-extrabold text-lg"><img src="/static/icons/icon-192.png" class="w-8 h-8 rounded-lg" alt="">SafeRoad <span class="text-gray-500 font-normal text-sm">live view</span></a>
+    <div class="flex gap-4 text-sm text-gray-300"><span>👥 <b id="n-users">{{ users|length }}</b> people</span><span>👮 <b>{{ users|selectattr('role','equalto','responder')|list|length }}</b> responders</span><span>🔔 <b>{{ subs }}</b> push subscriptions</span><span class="text-mint">● live</span></div>
+  </div>
+  <div class="grid lg:grid-cols-3 gap-4 mt-5">
+    <section><h2 class="font-bold mb-2">Alerts</h2><div id="feed" class="space-y-2">
+      {% for a in alerts %}<article class="card p-3 text-sm" data-alert-id="{{a.id}}"><div class="flex justify-between gap-2"><span class="badge {{ 'cat-all_clear' if a.category=='all_clear' else 'sev-'+a.severity }}">{{ a.category.replace('_',' ') }}</span><span class="text-xs text-gray-400">{{ a.source }} · {{ a.status }} · {{ a.ago }}</span></div><p class="mt-1">{{ a.summary_en }}</p><p class="text-xs text-gray-400 mt-1">📍 {{ a.location or '-' }} · by {{ a.author }} · spoke {{ a.language }}</p></article>{% endfor %}
+    </div></section>
+    <section><h2 class="font-bold mb-2">Questions</h2><div id="questions" class="space-y-2">
+      {% for q in questions %}<article class="card p-3 text-sm" data-question-id="{{q.id}}"><div class="flex justify-between gap-2"><span class="badge {{ 'st-'+q.status if q.status!='n/a' else 'bg-white/5 text-gray-400' }}">{{ q.intent if q.status=='n/a' else q.status.replace('_',' ') }}</span><span class="text-xs text-gray-400">{{ q.asker }} · {{ q.language }} · {{ q.ago }}</span></div><p class="mt-1 text-gray-300">❓ {{ q.text_en }}</p><p class="mt-1">→ {{ q.answer_en }}</p>{% if q.escalated %}<p class="text-xs text-amber mt-1">escalated to responders{% if q.resolved %} · resolved{% endif %}</p>{% endif %}</article>{% endfor %}
+    </div></section>
+    <section><h2 class="font-bold mb-2">People & deliveries</h2>
+      <div class="space-y-1 text-sm">{% for u in users %}<div class="card px-3 py-2 flex items-center gap-2">{% if u.photo_url %}<img src="{{u.photo_url}}" class="w-7 h-7 rounded-full object-cover">{% else %}<span class="w-7 h-7 rounded-full bg-amber/20 text-amber flex items-center justify-center text-xs font-bold">{{u.name[:1]}}</span>{% endif %}<span class="flex-1">{{u.name}} <span class="text-gray-500 text-xs">{{ LANGUAGES[u.language] }}</span></span><span class="badge {{ 'sev-caution' if u.role=='responder' else 'bg-white/5 text-gray-400' }}">{{u.role}}{% if u.role=='responder' and u.on_duty %} · on duty{% endif %}</span></div>{% endfor %}</div>
+      <h3 class="font-bold mt-4 mb-2 text-sm">Recent push deliveries</h3>
+      <div class="space-y-1 text-xs">{% for d in deliveries %}<div class="card px-3 py-1.5 flex justify-between"><span>{{ d.channel }} → user {{ d.user_id }} {% if d.alert_id %}(alert {{d.alert_id}}){% elif d.question_id %}(question {{d.question_id}}){% endif %}</span><span class="{{ 'text-mint' if d.status=='sent' else 'text-rose-300' }}">{{ d.status }} {{ d.error }}</span></div>{% else %}<p class="text-gray-500">none yet</p>{% endfor %}</div>
+    </section>
+  </div>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>
+SafeRoad.adminMode = true;
+SafeRoad.onEvent = (ev, d) => {
+  if (ev === 'new_alert') { const el = document.createElement('article'); el.className='card p-3 text-sm fade-in'; el.innerHTML = `<div class="flex justify-between gap-2"><span class="badge ${d.category==='all_clear'?'cat-all_clear':'sev-'+d.severity}">${d.category.replace('_',' ')}</span><span class="text-xs text-gray-400">${d.source} · ${d.status} · just now</span></div><p class="mt-1">${SafeRoad.esc(d.summary_en)}</p><p class="text-xs text-gray-400 mt-1">📍 ${SafeRoad.esc(d.location||'-')} · by ${SafeRoad.esc(d.author)} · spoke ${d.language}</p>`; document.getElementById('feed').prepend(el); }
+  if (ev === 'new_question' || ev === 'question_answered' || ev==='question_resolved') { const old = document.querySelector(`#questions [data-question-id="${d.id}"]`); if (old) old.remove(); const el = document.createElement('article'); el.className='card p-3 text-sm fade-in'; el.dataset.questionId=d.id; el.innerHTML = `<div class="flex justify-between gap-2"><span class="badge ${d.status!=='n/a'?'st-'+d.status:'bg-white/5 text-gray-400'}">${d.status==='n/a'?d.intent:d.status.replace('_',' ')}</span><span class="text-xs text-gray-400">${SafeRoad.esc(d.asker)} · ${d.language} · just now</span></div><p class="mt-1 text-gray-300">❓ ${SafeRoad.esc(d.text_en)}</p><p class="mt-1">→ ${SafeRoad.esc(d.answer_en)}</p>${d.escalated?`<p class="text-xs text-amber mt-1">escalated to responders${d.resolved?' · resolved':''}</p>`:''}`; document.getElementById('questions').prepend(el); }
+};
+</script>
+{% endblock %}

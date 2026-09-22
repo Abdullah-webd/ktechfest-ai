@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_alert_card.html" import alert_card %}
+{% block title %}Responder · SafeRoad{% endblock %}
+{% block body %}
+{% include "_topbar.html" %}
+<main class="max-w-3xl mx-auto px-4 pb-36">
+  <section class="pt-5">
+    <div class="card p-4 flex items-center justify-between gap-3">
+      <div>
+        <p class="font-bold">On duty · reachable by call</p>
+        <p class="text-xs text-gray-400">When on, residents who get no answer can call you on {{ user.phone }}.</p>
+      </div>
+      <button id="duty" class="switch {{ 'on' if user.on_duty }}" onclick="SafeRoad.toggleDuty(this)" aria-label="Toggle on duty"></button>
+    </div>
+  </section>
+
+  <section class="pt-6">
+    <h1 class="text-xl font-extrabold">Post an update</h1>
+    <p class="text-sm text-gray-400 mt-1">Say what you see. Every resident gets it in their language within seconds. Say "all clear" to close an alert.</p>
+    <div id="chat" class="mt-3 space-y-3"></div>
+  </section>
+
+  <section class="pt-8">
+    <div class="flex items-end justify-between"><h2 class="text-xl font-extrabold">Residents are asking</h2><span class="text-xs text-gray-400">● live</span></div>
+    <div id="questions" class="mt-3 space-y-3">
+      {% for q in open_questions %}
+      <article class="card p-4 fade-in" data-question-id="{{ q.id }}">
+        <div class="flex justify-between gap-2"><span class="badge st-no_information">waiting</span><span class="text-xs text-gray-400">{{ q.time }} · {{ q.ago }}</span></div>
+        <p class="mt-2 text-gray-100">❓ {{ q.text_en }}</p>
+        {% if q.location %}<p class="text-xs text-gray-400 mt-1">📍 {{ q.location }}</p>{% endif %}
+        <p class="text-xs text-gray-500 mt-2">Asked by {{ q.asker }}. Post an update about this and they will be notified automatically.</p>
+      </article>
+      {% else %}<p id="q-empty" class="text-sm text-gray-500 card p-4">No open questions. When a resident asks something nobody has reported, it appears here and your phone buzzes.</p>{% endfor %}
+    </div>
+  </section>
+
+  {% if reports %}
+  <section class="pt-8">
+    <h2 class="text-xl font-extrabold">Unconfirmed resident reports</h2>
+    <div class="mt-3 space-y-3">
+      {% for a in reports %}
+      <article class="card p-4"><div class="flex justify-between gap-2"><span class="badge st-unconfirmed_reports">unconfirmed</span><span class="text-xs text-gray-400">{{ a.ago }}</span></div>
+      <p class="mt-2">{{ a.summary_en }}</p>{% if a.location %}<p class="text-xs text-gray-400 mt-1">📍 {{ a.location }}</p>{% endif %}<p class="text-xs text-gray-500 mt-1">from {{ a.author }}</p></article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="pt-8">
+    <h2 class="text-xl font-extrabold">Recent alerts</h2>
+    <div id="feed" class="mt-3 space-y-3">
+      {% for a in alerts %}{{ alert_card(a, user.language) }}{% else %}<p id="feed-empty" class="text-sm text-gray-500 card p-4">Nothing posted in the last 24 hours.</p>{% endfor %}
+    </div>
+  </section>
+</main>
+
+<div class="fixed bottom-0 left-0 right-0 z-30 bg-ink/95 backdrop-blur border-t border-line" style="padding-bottom:env(safe-area-inset-bottom)">
+  <form id="ask-form" class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2" onsubmit="return SafeRoad.submitText(event,'/api/report')">
+    <input id="text-input" name="text" placeholder="Type an update, e.g. fight at the market, avoid it" autocomplete="off" class="flex-1">
+    <button type="submit" class="btn btn-ghost px-3" aria-label="Send">➤</button>
+    <button type="button" id="mic" class="btn btn-amber w-14 h-14 rounded-full text-2xl p-0" aria-label="Tap to talk" onclick="SafeRoad.toggleRecord('/api/report')">🎤</button>
+  </form>
+  <p id="rec-status" class="text-center text-xs text-gray-400 pb-2" hidden></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+SafeRoad.onResult = (r) => SafeRoad.renderReadback(r);
+SafeRoad.onEvent = (ev, d) => {
+  if (ev === 'new_alert') { if (d.author !== USER.name) SafeRoad.toast('⚠️ ' + d.author + ': ' + (d.translations[USER.language] || d.summary_en)); SafeRoad.prependAlert(d); }
+  if (ev === 'escalation') { SafeRoad.prependQuestion(d); SafeRoad.toast('❓ ' + d.asker + ' is asking: ' + d.text_en); }
+  if (ev === 'question_resolved') { const el = document.querySelector(`#questions [data-question-id="${d.id}"]`); if (el) el.remove(); }
+};
+</script>
+{% endblock %}
