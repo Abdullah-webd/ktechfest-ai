@@ -42,7 +42,8 @@ Unconfirmed RESIDENT reports from the last 6 hours (id · location · summary ·
 Responder ON DUTY and reachable by phone right now (name · area), or (none):
 {contact}
 
-The person's NEW message ({modality}): {message}
+The person's NEW message ({modality}):
+{message}
 
 You have TOOLS. Decide which to run (zero or more) and list them in "tools":
 - {{"name":"escalate_to_responders","args":{{"question_en":"...","location":"...","category":"..."}}}} — when a real safety question has no responder answer (status unconfirmed_reports or no_information). Do NOT escalate again if the same question is already listed above as escalated and unresolved; instead tell them it is still with the responders.
@@ -51,7 +52,8 @@ You have TOOLS. Decide which to run (zero or more) and list them in "tools":
 Reply rules for "reply": 1-3 short sentences, WhatsApp style, in the person's language. For questions: name the responder and minutes ago for anything confirmed/contradicted; if nothing is known say clearly that no responder has reported it, that you have asked the responders and will message them when one replies, and (if a responder is on duty) that they can tap the call button to reach that responder directly. One practical tip (avoid the area / go carefully / stay put). For reports: thank them, say it is recorded as unconfirmed and responders have been asked to check. For greetings/chat: reply briefly and remind them they can ask about any road or area, or forward any message they received to check it.
 
 Return ONLY JSON:
-{{"language": "<code of the language they used>", "intent": "question|report|chat",
+{{"transcript": "<the person's message as best understood, IN THE LANGUAGE THEY ACTUALLY SPOKE. If two transcript candidates were given they may be in different languages: pick the coherent one, lightly clean it, and never translate it. If they spoke English, the transcript is English.>",
+ "language": "<code of the language ACTUALLY SPOKEN in this message (not the profile language)>", "intent": "question|report|chat",
  "location": "<short place or empty>", "category": "<category>", "severity": "<severity or info>",
  "status": "confirmed|contradicted|unconfirmed_reports|no_information|n/a", "matched_alert_ids": ["..."],
  "reply": "<reply in their language>", "reply_en": "<same reply in English>", "text_en": "<their message in English, one line>",
@@ -72,7 +74,8 @@ Residents WAITING for an answer (id · location · category · question in Engli
 Unconfirmed RESIDENT reports (id · location · summary · minutes ago):
 {resident_reports}
 
-The responder's NEW message ({modality}): {message}
+The responder's NEW message ({modality}):
+{message}
 
 You have TOOLS. Decide which to run (zero or more) and list them in "tools":
 - {{"name":"post_alert","args":{{"category":"...","severity":"...","location":"...","summary_en":"<1-2 sentence public alert: what, where, what to do>","broadcast_local":"<same alert in the responder's language>","closes_alert_ids":[],"answers_question_ids":[],"confirms_report_ids":[]}}}} — whenever the responder reports something happening, OR says an area is now safe / the problem is over (then category all_clear, severity info, and closes_alert_ids lists the open alerts it clears). answers_question_ids: waiting questions this directly answers. confirms_report_ids: resident reports this confirms.
@@ -81,7 +84,8 @@ You have TOOLS. Decide which to run (zero or more) and list them in "tools":
 Reply rules for "reply": a short readback in the responder's language confirming what was recorded and that residents are being notified (e.g. "Recorded: fight near the market, danger. Sending to all residents now."). If they only asked a question or chatted, answer briefly; if they ask what residents are asking, summarise the waiting questions.
 
 Return ONLY JSON:
-{{"language": "<code>", "intent": "report|question|chat",
+{{"transcript": "<the responder's message as best understood, IN THE LANGUAGE THEY ACTUALLY SPOKE. If two transcript candidates were given they may be in different languages: pick the coherent one, lightly clean it, and never translate it.>",
+ "language": "<code of the language ACTUALLY SPOKEN in this message (not the profile language)>", "intent": "report|question|chat",
  "reply": "<reply in their language>", "reply_en": "<same reply in English>", "text_en": "<their message in English, one line>",
  "tools": [ ... ]}}"""
 

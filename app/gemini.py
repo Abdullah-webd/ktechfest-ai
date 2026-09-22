@@ -198,6 +198,13 @@ async def run_agent(*, role: str, name: str, profile_lang: str, now: str, histor
     return _json(await _generate(contents, thinking=CAREFUL if role == "resident" else FAST))
 
 
+async def transcribe(audio: bytes, mime: str = "audio/wav") -> str:
+    """Fallback transcription when Spitch is unavailable."""
+    out = _json(await _generate([types.Part.from_bytes(data=audio, mime_type=mime),
+                                 "Transcribe this audio exactly in its original language (Yoruba, Hausa, Igbo, Nigerian Pidgin or English). Return ONLY JSON {\"transcript\": \"...\"}."], thinking=FAST))
+    return (out.get("transcript") or "").strip()
+
+
 async def translate_many(text_en: str, langs: list[str], *, style: str = "public safety alert") -> dict[str, str]:
     langs = [l for l in dict.fromkeys(langs) if l in LANGUAGES]
     if not langs:

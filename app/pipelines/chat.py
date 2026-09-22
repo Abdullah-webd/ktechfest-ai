@@ -11,6 +11,7 @@ from typing import Optional
 from pymongo import DESCENDING
 
 from .. import agent, speech
+from ..config import LANGUAGES
 from ..db import Message, Question, User, find, messages, put_media, questions, update, users, utcnow
 from ..notify import broker
 from . import common, tools
@@ -50,10 +51,26 @@ async def handle_turn(*, user: User, text: Optional[str], audio: Optional[bytes]
     await tools.deliver(user, user_msg)
     await update(users, user.id, {"last_active_at": utcnow()})
 
-    # 2. voice -> text (Spitch, auto language detection)
+    # 2. voice -> text (Spitch: chunked, two candidates; the agent picks the coherent one)
     transcript = text or ""
+    message_for_agent = text or ""
     if audio:
-        transcript = await speech.transcribe(audio, hint_lang=user.language)
+        try:
+            tr = await speech.transcribe(audio, hint_lang=user.language)
+        except Exception:  # noqa: BLE001
+            log.exception("transcription failed")
+            sorry_en = "I couldn't make out that voice note. Please try again, a little closer to the phone, or type it."
+            sorry = (await agent.translate_many(sorry_en, [user.language], style="short apology")).get(user.language) or sorry_en
+            reply = Message(user_id=user.id, role="assistant", kind="answer", text=sorry, text_en=sorry_en, language=user.language)
+            await tools.deliver(user, reply)
+            return {"ok": True, "user_message": common.message_to_dict(user_msg), "reply": common.message_to_dict(reply), "autoplay": False}
+        cands = []
+        if tr["auto"]:
+            cands.append(f"Transcript candidate A (language auto-detected): {tr['auto']}")
+        if tr["hinted"] and tr["hinted"] != tr["auto"]:
+            cands.append(f"Transcript candidate B (assuming {LANGUAGES.get(tr['hint_lang'], tr['hint_lang'])}): {tr['hinted']}")
+        message_for_agent = "\n".join(cands)
+        transcript = tr["hinted"] or tr["auto"]
         user_msg.text = transcript
         await update(messages, user_msg.id, {"text": transcript})
         broker.publish("message", common.message_to_dict(user_msg), audience=f"user:{user.id}")
@@ -75,9 +92,13 @@ async def handle_turn(*, user: User, text: Optional[str], audio: Optional[bytes]
 
     # 4. the agent decides
     r = await agent.run(role=user.role, name=user.name, profile_lang=user.language, now=common.now_local_str(), history=hist,
-                        message=transcript, modality="voice note, transcribed" if audio else "typed", **ctx)
+                        message=message_for_agent, modality="voice note, transcribed" if audio else "typed", **ctx)
     lang = r.get("language") or user.language
-    await update(messages, user_msg.id, {"text_en": r.get("text_en") or transcript, "language": lang})
+    if audio and r.get("transcript"):
+        transcript = r["transcript"].strip() or transcript
+        user_msg.text = transcript
+        broker.publish("message", common.message_to_dict(user_msg), audience=f"user:{user.id}")
+    await update(messages, user_msg.id, {"text": transcript, "text_en": r.get("text_en") or transcript, "language": lang})
 
     # 5. store the reply first so the person sees it immediately, then run tools + voice in the background
     status = r.get("status") if r.get("status") not in (None, "", "n/a") else None
