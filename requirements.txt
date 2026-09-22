@@ -10,5 +10,6 @@ pydantic-settings==2.15.0
 pymongo==4.18.1
 python-multipart==0.0.32
 pywebpush==2.5.0
+resend==2.47.0
 sse-starlette==3.4.11
 uvicorn==0.53.0
