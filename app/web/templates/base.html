@@ -40,7 +40,7 @@
   </div>
 </div>
 <script>window.VAPID_PUBLIC_KEY="{{ VAPID_PUBLIC_KEY }}";window.USER={{ ({'id':user.id,'role':user.role,'language':user.language,'name':user.name,'first':user.first_name} if user else None)|tojson }};</script>
-<script src="/static/app.js?v=6"></script>
+<script src="/static/app.js?v=7"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     spitch_api_key: str = ""
     deepseek_api_key: str = ""
     deepseek_model: str = "deepseek-flash"
+    demo_resident_email: str = ""
+    demo_resident_password: str = ""
+    demo_responder_email: str = ""
+    demo_responder_password: str = ""
+    demo_invite_code: str = ""
     resend_api_key: str = ""
     email_from: str = "SafeRoad <noreply@example.com>"
     alert_ttl_hours: int = 6

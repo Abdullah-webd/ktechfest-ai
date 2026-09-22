@@ -43,7 +43,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SafeRoad", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE / "web" / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "web" / "templates")
-templates.env.globals.update(LANGUAGES=LANGUAGES, VAPID_PUBLIC_KEY=settings.vapid_public_key)
+templates.env.globals.update(LANGUAGES=LANGUAGES, VAPID_PUBLIC_KEY=settings.vapid_public_key,
+                             DEMO={"resident": {"email": settings.demo_resident_email, "password": settings.demo_resident_password},
+                                   "responder": {"email": settings.demo_responder_email, "password": settings.demo_responder_password},
+                                   "invite_code": settings.demo_invite_code})
 
 
 def render(request: Request, name: str, status_code: int = 200, **ctx) -> HTMLResponse:

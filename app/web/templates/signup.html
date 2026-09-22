@@ -23,7 +23,8 @@
     <select id="language" name="language">{% for code,label in LANGUAGES.items() %}<option value="{{code}}" {{ 'selected' if form.language==code }}>{{label}}</option>{% endfor %}</select>
     <p class="hint">You can still speak any language. The assistant replies in the one you use.</p></div>
   {% if role=='responder' %}
-  <div class="field"><label for="invite_code">Responder invite code</label><input id="invite_code" name="invite_code" required value="{{ form.invite_code or '' }}" placeholder="KTF-2026" class="uppercase tracking-wider"></div>
+  <div class="field"><label for="invite_code">Responder invite code</label><input id="invite_code" name="invite_code" required value="{{ form.invite_code or DEMO.invite_code or '' }}" placeholder="KTF-2026" class="uppercase tracking-wider">
+    {% if DEMO.invite_code %}<p class="hint flex items-start gap-1.5">{{ icon('info','w-3.5 h-3.5 mt-0.5 shrink-0') }}<span>Prefilled for the hackathon demo. In production this code is never shown here: the group leader receives it privately and hands it only to verified members.</span></p>{% endif %}</div>
   <div class="field"><label for="phone">Phone number residents can call</label><input id="phone" name="phone" type="tel" required value="{{ form.phone or '' }}" placeholder="0803 123 4567" autocomplete="tel"><p class="hint">Only shown to residents while you are on duty.</p></div>
   <div class="field"><label for="area">Area you cover <span class="text-muted font-normal">(optional)</span></label><input id="area" name="area" value="{{ form.area or '' }}" placeholder="Kaduna road, market side"></div>
   {% endif %}

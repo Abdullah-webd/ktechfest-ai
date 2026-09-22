@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_icons.html" import icon %}{% from "_auth_layout.html" import auth_shell %}
 {% block title %}Log in · SafeRoad{% endblock %}
 {% block body %}
-{% call auth_shell('Welcome back', 'Log in to see alerts and talk to the assistant.') %}
+{% call auth_shell('Welcome back', 'Log in to see alerts and talk to the agent.') %}
 {% if reset %}<div class="alert-box alert-ok mt-5">{{ icon('check-circle','w-5 h-5 shrink-0') }}<span>Your password was changed. Log in with the new one.</span></div>{% endif %}
 {% if error %}<div class="alert-box alert-error mt-5">{{ icon('alert','w-5 h-5 shrink-0') }}<span>{{ error }}</span></div>{% endif %}
 <form method="post" action="/login" class="mt-6 space-y-5">
@@ -11,5 +11,16 @@
   <button class="btn btn-primary w-full btn-lg" type="submit">Log in</button>
   <p class="text-center text-sm text-muted">New to SafeRoad? <a href="/signup" class="link">Create an account</a></p>
 </form>
+{% if DEMO.resident.email or DEMO.responder.email %}
+<div class="mt-8">
+  <div class="flex items-center gap-3 text-xs font-bold tracking-widest uppercase text-muted"><span class="h-px flex-1 bg-line"></span>Try a demo account<span class="h-px flex-1 bg-line"></span></div>
+  <p class="text-sm text-muted text-center mt-3">One tap fills the details and logs you in. Both accounts are real and live.</p>
+  <div class="grid sm:grid-cols-2 gap-3 mt-4">
+    {% if DEMO.resident.email %}<button type="button" class="btn btn-ghost btn-lg justify-start" onclick="SafeRoad.demoLogin('resident')">{{ icon('user','w-5 h-5 text-brand-600') }}<span class="text-left"><span class="block font-semibold">Resident demo</span><span class="block text-xs text-muted font-normal">Ask the agent, get alerts</span></span></button>{% endif %}
+    {% if DEMO.responder.email %}<button type="button" class="btn btn-ghost btn-lg justify-start" onclick="SafeRoad.demoLogin('responder')">{{ icon('shield','w-5 h-5 text-brand-600') }}<span class="text-left"><span class="block font-semibold">Responder demo</span><span class="block text-xs text-muted font-normal">Post alerts, answer residents</span></span></button>{% endif %}
+  </div>
+</div>
+<script>window.DEMO_ACCOUNTS={{ DEMO|tojson }};</script>
+{% endif %}
 {% endcall %}
 {% endblock %}

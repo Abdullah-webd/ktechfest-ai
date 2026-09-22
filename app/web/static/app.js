@@ -11,6 +11,7 @@
   S.toast = (msg, ms = 4500) => { const t = $('toast'); if (!t) return; t.innerHTML = `<div class="toast-card">${S.esc(msg)}</div>`; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), ms); };
 
   // ---------- small form helpers ----------
+  S.demoLogin = (role) => { const a = (window.DEMO_ACCOUNTS || {})[role]; if (!a || !a.email) return; const e = $('email'), p = $('password'); e.value = a.email; p.value = a.password; e.dispatchEvent(new Event('input')); p.dispatchEvent(new Event('input')); S.toast(`Logging in to the ${role} demo…`); setTimeout(() => e.closest('form').requestSubmit(), 350); };
   S.togglePw = (id, btn) => { const i = $(id); i.type = i.type === 'password' ? 'text' : 'password'; btn.classList.toggle('text-brand-600', i.type === 'text'); };
   S.previewPhoto = (input) => { const f = input.files && input.files[0]; if (!f) return; const img = $('photo-preview'); img.src = URL.createObjectURL(f); img.hidden = false; $('photo-placeholder').hidden = true; };
   S.otp = (boxId, hiddenId, formId) => {
