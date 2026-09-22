@@ -34,7 +34,11 @@ BASE = Path(__file__).parent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    try:
+        await init_db()
+        log.info("MongoDB ready")
+    except Exception as e:  # noqa: BLE001
+        log.error("MongoDB not reachable at startup (%s). Check Atlas Network Access allows 0.0.0.0/0.", str(e)[:200])
     yield
 
 
@@ -301,4 +305,8 @@ async def events(request: Request, user: Optional[User] = Depends(optional_user)
 
 @app.get("/healthz")
 async def healthz():
-    return {"ok": True}
+    try:
+        await users.estimated_document_count()
+        return {"ok": True, "db": "ok"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": True, "db": f"error: {str(e)[:120]}"}
