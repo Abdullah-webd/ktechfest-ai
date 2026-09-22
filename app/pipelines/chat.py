@@ -57,8 +57,10 @@ async def handle_turn(*, user: User, text: Optional[str], audio: Optional[bytes]
     if audio:
         try:
             tr = await speech.transcribe(audio, hint_lang=user.language)
+            if not (tr["hinted"] or tr["auto"]).strip():
+                raise RuntimeError("empty transcript")
         except Exception:  # noqa: BLE001
-            log.exception("transcription failed")
+            log.warning("transcription failed or empty for user %s", user.id)
             sorry_en = "I couldn't make out that voice note. Please try again, a little closer to the phone, or type it."
             sorry = (await agent.translate_many(sorry_en, [user.language], style="short apology")).get(user.language) or sorry_en
             reply = Message(user_id=user.id, role="assistant", kind="answer", text=sorry, text_en=sorry_en, language=user.language)

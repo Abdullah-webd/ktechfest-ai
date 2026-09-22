@@ -75,8 +75,8 @@ async def transcribe(audio: bytes, *, hint_lang: Optional[str] = None) -> dict:
     if not auto and not hinted and settings.all_gemini_keys:
         from . import gemini
         auto = await gemini.transcribe(audio)
-    if not auto and not hinted:
-        raise RuntimeError("transcription failed")
+    if not (auto or hinted).strip():
+        raise RuntimeError("transcription failed or empty")
     return {"auto": auto, "hinted": hinted, "hint_lang": hint_lang or "en"}
 
 

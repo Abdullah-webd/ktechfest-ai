@@ -14,7 +14,7 @@
         {% set ns = namespace(day=None) %}
         {% for m in messages %}
           {% if m.day != ns.day %}{% set ns.day = m.day %}<div class="day">{{ m.day }}</div>{% endif %}
-          <div class="msg {{ 'me' if m.role=='user' else 'ai' }}" data-id="{{ m.id }}">
+          <div class="msg {{ 'me' if m.role=='user' else 'ai' }}" data-id="{{ m.id }}" data-ts="{{ m.created_at }}">
             {% if m.kind=='alert' and m.alert %}
               {{ alert_card(m.alert, user.language) }}
               <div class="msg-actions"><button class="btn btn-ghost" onclick="SafeRoad.speak('{{ m.id }}', this)">{{ icon('volume','w-4 h-4') }} Listen</button></div>

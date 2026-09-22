@@ -116,7 +116,13 @@
       body = `<div class="bubble ${m.kind === 'system' ? 'system' : ''}">${chipFor(m)}<p>${S.esc(m.text)}</p>${m.alert ? `<div class="mt-2.5">${S.alertCardHTML(m.alert)}</div>` : ''}${actions}</div>`;
     }
     el.innerHTML = body + `<div class="meta">${m.time || ''}</div>`;
-    if (fresh) { const lastDay = [...c.querySelectorAll('.day')].pop(); if (m.day && (!lastDay || lastDay.textContent !== m.day)) { const d = document.createElement('div'); d.className = 'day'; d.textContent = m.day; c.appendChild(d); } c.appendChild(el); }
+    if (m.created_at) el.dataset.ts = m.created_at; else if (!el.dataset.ts) el.dataset.ts = new Date().toISOString();
+    if (fresh) {
+      const lastDay = [...c.querySelectorAll('.day')].pop(); if (m.day && (!lastDay || lastDay.textContent !== m.day)) { const d = document.createElement('div'); d.className = 'day'; d.textContent = m.day; c.appendChild(d); }
+      // insert by timestamp so order never depends on which message arrived first (live event vs. upload response)
+      const msgs = [...c.querySelectorAll('.msg')]; const after = msgs.reverse().find((x) => (x.dataset.ts || '') <= el.dataset.ts);
+      if (after && after.nextSibling) after.parentNode.insertBefore(el, after.nextSibling); else c.appendChild(el);
+    }
     scrollToEnd();
     return el;
   };
@@ -130,13 +136,16 @@
   S.submitText = (e) => { e.preventDefault(); const ta = $('text-input'); const text = ta.value.trim(); if (!text) return false; ta.value = ''; S.autosize(ta); const fd = new FormData(); fd.append('text', text); S.send(fd, { text }); return false; };
   S.send = async (fd, local) => {
     const tempId = 'tmp-' + Date.now();
-    pendingLocal = S.renderMessage({ id: tempId, role: 'user', kind: local.audio ? 'voice' : 'text', text: local.text || '', audio_url: local.audio || '', time: 'sending…' });
+    // stamp the pending bubble as strictly the newest item, so it always lands at the bottom; the server timestamp replaces it on success
+    const lastTs = [...chat().querySelectorAll('.msg')].map((x) => x.dataset.ts || '').sort().pop() || '';
+    const nowTs = new Date().toISOString();
+    pendingLocal = S.renderMessage({ id: tempId, role: 'user', kind: local.audio ? 'voice' : 'text', text: local.text || '', audio_url: local.audio || '', time: 'sending…', created_at: (lastTs > nowTs ? lastTs : nowTs) + '~' });
     showTyping();
     try {
       const r = await fetch('/api/chat', { method: 'POST', body: fd });
       const data = await r.json();
       if (!r.ok) throw new Error(data.detail || 'Request failed');
-      if (pendingLocal) { pendingLocal.dataset.id = data.user_message.id; pendingLocal = null; }
+      if (pendingLocal) { pendingLocal.dataset.id = data.user_message.id; pendingLocal.dataset.ts = data.user_message.created_at || pendingLocal.dataset.ts; pendingLocal = null; }
       S.renderMessage(data.user_message); hideTyping(); S.renderMessage(data.reply); flushQueued();
       if (data.autoplay) { S.wantAutoplay = data.reply.id; const btn = chat().querySelector(`[data-id="${data.reply.id}"] button[data-audio]`); if (btn && btn.dataset.audio) { S.wantAutoplay = null; S.speak(data.reply.id, btn); } }
     } catch (e) { hideTyping(); if (pendingLocal) { pendingLocal.querySelector('.meta').textContent = 'not sent'; pendingLocal = null; } flushQueued(); S.toast(e.message, 7000); }
