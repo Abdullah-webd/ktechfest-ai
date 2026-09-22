@@ -1,163 +1,344 @@
-# Architecture — Community Safety Agent on WhatsApp
+# SafeRoad — Architecture (Web App / PWA version)
 
-Working name: **SafeRoad** (rename freely).
+> Verified community safety alerts, in your language, on your phone, in seconds.
 
-One WhatsApp number. Two kinds of people talk to it: **responders** (the local vigilante / community security group) and **residents** (Amara). Responders drop what they know, in any language, by voice or text. The agent structures it, broadcasts it to residents in their own language, and answers "is this true?" questions using only what responders have actually said, with a clear confidence state and a timestamp.
+SafeRoad is a website that installs like an app. Two kinds of people use it:
+
+- **Responders** — the local vigilante / community security group. They know what is happening first. They post what they see, by voice or text, in Yoruba, Hausa, Igbo, English or Pidgin.
+- **Residents** — people like Amara. They get an instant notification when a responder posts, and they can ask the AI "is this true?" about anything they heard, and get an answer that says exactly who confirmed it and when.
+
+Everything below is written so that a non‑technical reader can follow the diagrams. The technical detail is underneath each one.
 
 ---
 
-## 1. What the problem statement is really saying
+## 0. Why we moved from WhatsApp to a web app (and what we say to judges)
 
-- "The local vigilante group has a radio but no way to reach everyone quickly" — in most Nigerian towns the vigilante/hunters/Civilian JTF group carries handheld two‑way radios (walkie‑talkies). They can talk **to each other** instantly, but that channel is closed: residents are not on it. So the group often knows what is happening on the road before anyone else and has no fast way to tell 2,000 people. That is the gap we fill: the agent is the bridge from the radio circle to the town.
-- "Too much noise, too little verified signal" — the fix is not more information, it is **provenance**. Every answer must say *who* said it and *when*.
-- "She needs to trust what she's told" — the agent must never say "true" or "false" on its own authority. It says *confirmed by a responder at 6:31 PM*, *reported by residents but not yet confirmed*, or *no responder has reported this*.
+We have 72 hours. The WhatsApp route adds a sandbox with a 24‑hour messaging window, a 72‑hour auto‑disconnect, media‑fetching quirks and a Meta approval process for anything real. Every hour spent debugging that is an hour not spent on the actual idea: **turning noise into verified signal**.
 
-## 2. Corrections to the original plan
+A Progressive Web App (PWA) gives us the same experience with none of that:
 
-| Original idea | Problem | What we do instead |
-|---|---|---|
-| Two Twilio sandbox numbers, one per role | Twilio gives **one** sandbox per account, and it is the same global number (+1 415 523 8886) with a per‑account `join <word>` phrase. A phone can only be joined to one sandbox at a time, so two accounts would collide on real phones. | One number. Role is decided at onboarding: responders enter a one‑time **invite code** shown on the responder page of the website. Everyone else is a resident. In production this becomes two real WhatsApp Business senders. |
-| Ask the vigilante for their phone number | We already have it — WhatsApp gives us the sender number on every message. | Onboarding asks for **name** and **photo** only. Phone is captured automatically. |
-| Agent gives residents a vigilante's phone number when it has no answer | Leaks responders' personal numbers to the whole town; some will refuse to join. | Agent **escalates**: forwards the question to all responders ("A resident is asking about X near Y, any info?") and tells the resident it has asked. When a responder answers, the agent replies to the resident and records it as a new alert. A responder can *opt in* to a public hotline number if the group wants one. |
-| "The vigilante knows the truth" | They know more than anyone else, but they can be wrong, late, or absent. | Responders are the **highest‑trust source**, not ground truth. Alerts carry the responder's name, time, and an expiry. Multiple resident reports of the same thing get clustered and pushed to responders for confirmation. |
-| Gemini Live API for voice | Live is for real‑time streaming audio calls. WhatsApp voice notes are files. | Gemini 2.5 Flash reads the audio file directly (transcribe + translate + understand in one call). Gemini TTS produces the voice reply. |
-| Everything works live on the sandbox | Sandbox has a **24‑hour session window**: we can only send a free‑form message to someone who has messaged us in the last 24 h. Broadcasts to people outside the window silently fail. Sandbox also unjoins phones after 72 h of inactivity. | For the demo, every phone messages the bot at the start of the day. We log delivery status per recipient. Production uses an approved alert **template** which has no window. |
-| PWA install button works everywhere | Chrome/Android show the native install prompt. iOS Safari never fires it; the user has to tap Share → Add to Home Screen. | Install button on Android/desktop Chrome; on iOS show a small "Add to Home Screen" hint instead. |
+| Need from the brief | How the PWA meets it |
+|---|---|
+| Reach Amara instantly | Push notifications to her phone (Android and installed‑iOS), plus email as a backup |
+| No new app to download | The site installs from the browser; on Android it shows an **Install** button, on iPhone "Add to Home Screen" |
+| Voice, because typing is slow and literacy varies | Hold‑to‑record voice button; AI understands the audio directly |
+| Her language | AI detects it and answers in it, in text and voice |
+| Trust | Every alert shows the responder's name and time; the AI only quotes responders, never guesses |
 
-## 3. System overview
+The alert engine is channel‑independent. WhatsApp and SMS are adapters we can bolt on for the final. That is the line for the pitch: *"Today it is a PWA. The same engine can speak WhatsApp tomorrow."*
+
+---
+
+## 1. The big picture
 
 ```mermaid
 flowchart LR
-    R[Responder phone\nWhatsApp voice/text/photo] -->|inbound| TW[Twilio WhatsApp Sandbox]
-    U[Resident phone\nWhatsApp voice/text] -->|inbound| TW
-    TW -->|webhook POST| API[FastAPI app\n/webhooks/twilio/whatsapp]
-    API -->|typing indicator| TW
-    API --> Q[Background task queue]
-    Q --> AI[Gemini layer\nunderstand · verify · render]
-    AI --> DB[(SQLite → Postgres)]
-    Q -->|REST send| TW
-    TW -->|broadcast in each language| U
-    TW -->|escalations| R
-    WEB[Landing page + PWA\nQR codes, install button] --> API
-    ADMIN[/admin feed] --> API
+    subgraph People
+        R[👮 Responder<br/>vigilante member]
+        A[🧕 Resident<br/>Amara]
+    end
+
+    subgraph SafeRoad["SafeRoad web app (installs like an app)"]
+        RS[Responder screen<br/>post what you see]
+        AS[Resident screen<br/>alerts feed + ask the AI]
+    end
+
+    subgraph Brain["The engine (Python server)"]
+        AI[🤖 AI layer<br/>understands voice & text<br/>in any language]
+        DB[(Alert memory<br/>who said what, when)]
+        N[🔔 Notifier<br/>push + email]
+    end
+
+    R -->|voice or text| RS --> AI
+    AI -->|structured alert| DB
+    DB --> N -->|"⚠️ Fight near the market — confirmed by Musa, 6:31 PM"| A
+    A -->|"Is Kaduna road safe?"| AS --> AI
+    AI -->|"reads only what responders said"| DB
+    AI -->|"answer + who + when"| A
 ```
 
-Single Python process (FastAPI) serves the website, the PWA assets, the Twilio webhook, and a small admin feed. Background work runs in‑process for the hackathon (FastAPI `BackgroundTasks`), swappable for a real queue later.
+**In plain words:** A responder sees something and tells SafeRoad, speaking or typing in whatever language they like. The AI turns that into a clean alert (what, where, how serious, who said it, when) and stores it. Every resident's phone buzzes with the alert in *their* language. When Amara hears a rumour, she asks SafeRoad. The AI looks only at what responders have actually said and tells her: confirmed, contradicted, or nobody has reported it yet, with a time. It never makes things up.
 
-## 4. Components
+---
 
-### 4.1 Web (FastAPI + Jinja2 + Tailwind CDN)
-- `/` — landing page: the story, how it works, two big buttons: **I live here** / **I am a responder**.
-- `/join/resident` — QR code + button. Both open `https://wa.me/14155238886?text=join%20<sandbox-word>`. Instructions: "send the join message, then say hello in your language".
-- `/join/responder` — same QR/button plus a generated **invite code** (e.g. `RESPONDER-7K2Q`). Page is behind a simple shared passphrase for the demo.
-- `/admin` — live feed of alerts, escalations, users, broadcast delivery status. This is what you show the judges on the projector while phones do the talking.
-- PWA: `manifest.webmanifest`, `sw.js` (cache shell), install button via `beforeinstallprompt`, iOS hint.
-- Everything mobile‑first.
+## 2. A responder posts an alert
 
-### 4.2 Webhook (`POST /webhooks/twilio/whatsapp`)
-Twilio needs a response within ~15 s, and AI work can take longer. So:
-1. Validate the Twilio signature.
-2. Persist the raw inbound (From, Body, MediaUrl0, MediaContentType0, MessageSid).
-3. Fire the **typing indicator** for `MessageSid` (POST `https://messaging.twilio.com/v3/Indicators/Typing.json`, `{channel:"whatsapp", messageId}`). Re‑fire at 20 s if still working.
-4. Return empty TwiML immediately.
-5. Background task runs the pipeline and sends the reply via the Twilio REST API.
+```mermaid
+sequenceDiagram
+    actor M as Musa (responder)
+    participant App as SafeRoad app
+    participant AI as AI layer (Gemini)
+    participant DB as Alert memory
+    participant N as Notifier
+    actor Res as All residents
 
-### 4.3 Conversation router (per user state machine)
+    M->>App: 🎤 Voice note in Hausa: "Fight near the market, people should avoid it"
+    App-->>M: "Listening…" (processing indicator)
+    App->>AI: audio + who is speaking
+    AI-->>App: transcript, language=ha, category=fight, location=market, severity=danger, English summary
+    App->>DB: save alert (author=Musa, time=6:31 PM, expires in 6h)
+    App-->>M: Readback in Hausa: "Recorded: fight near the market, danger. Sending to 143 residents. Tap to edit."
+    App->>N: broadcast alert #42
+    N->>AI: translate summary into yo / ig / en / pcm (once per language)
+    N->>Res: 🔔 push notification in each resident's language
+    N->>Res: ✉️ email (backup, if enabled)
+    App->>DB: record delivery status per resident
 ```
-unknown number
-  ├─ body matches unused invite code → role=responder, state=onboard_name
-  └─ anything else                   → role=resident,  state=onboard_name
-onboard_name  → ask name (text or voice, any language) → state=onboard_photo
-onboard_photo → ask for a photo (MediaContentType image/*) → state=active
-active
-  ├─ responder: every message = REPORT (unless intent=question/chat)
-  └─ resident:  intent ∈ {question, report, chat}
+
+**In plain words:** Musa presses the record button and speaks. Within seconds the app reads back what it understood so he can fix a mistake. Then every resident gets a notification in their own language. The app keeps a record of who was reached.
+
+---
+
+## 3. A resident asks "is this true?"
+
+```mermaid
+flowchart TD
+    Q["Amara asks (voice or text):<br/>'Cousin says the whole town is under attack. True?'"] --> U[AI understands:<br/>location = town / Kaduna road<br/>category = attack<br/>language = Yoruba]
+    U --> F[Fetch responder alerts<br/>from the last 24h<br/>that are still open]
+    F --> V{AI compares question<br/>to real alerts}
+    V -->|A responder said this| C["✅ CONFIRMED<br/>'Musa confirmed a fight near the market 12 min ago. Avoid it.'"]
+    V -->|A responder said the opposite| X["❌ CONTRADICTED<br/>'Musa reported the market clear 8 min ago. Your message is not confirmed.'"]
+    V -->|Only residents reported it| UR["⚠️ UNCONFIRMED<br/>'3 residents reported this, no responder has confirmed. I have asked them.'"]
+    V -->|Nothing at all| NI["ℹ️ NO INFORMATION<br/>'No responder has reported anything about this today. I have asked them.'"]
+    UR --> E[Escalate to responders]
+    NI --> E
+    C --> OUT[Answer in Yoruba,<br/>text + voice,<br/>always with time and name]
+    X --> OUT
+    UR --> OUT
+    NI --> OUT
 ```
-Language is detected from the first message and stored; every reply goes out in that language. User can switch by just writing in another language.
 
-### 4.4 AI layer (Gemini, one API key)
-Three narrow calls, each with a strict JSON schema:
+**In plain words:** Amara asks a question. The AI checks it against what responders have actually said today. There are only four possible answers, and each one tells her who said it and how long ago. If nobody has confirmed anything, the app does not guess; it says so, and it goes and asks the responders on her behalf.
 
-**understand(message)** — input: text, or audio bytes, or image + caption; plus user role and last few turns.
-Output:
-```json
-{
-  "transcript": "...", "language": "yo", "intent": "report|question|onboarding_answer|chat",
-  "english_summary": "...", "location": "Kaduna road, near the market", "category": "robbery|fight|roadblock|fire|movement|all_clear|other",
-  "severity": "info|caution|danger", "time_reference": "now"
-}
+---
+
+## 4. The escalation loop (when nobody knows yet)
+
+```mermaid
+sequenceDiagram
+    actor A as Amara
+    participant App as SafeRoad
+    actor R as Responders (all)
+    A->>App: "Is Kaduna road safe?"
+    App-->>A: "No responder has reported on Kaduna road today. I've asked them. I'll notify you."
+    App->>R: 🔔 "A resident is asking about Kaduna road. Any information?"
+    R->>App: 🎤 "Road is clear, I passed 5 minutes ago" (Hausa)
+    App->>App: becomes an alert (all_clear, Kaduna road, by Musa)
+    App-->>A: 🔔 "Musa confirmed Kaduna road clear 1 min ago."
+    App-->>R: 🔔 other residents who asked the same thing also get told
 ```
-Model: `gemini-2.5-flash` (native audio + image input, fast, cheap).
 
-**verify(question, candidate_alerts)** — input: the resident's structured question plus the alerts from the last N hours that match location/category (simple SQL filter first, then let the model rank). Output:
-```json
-{ "status": "confirmed|contradicted|unconfirmed_reports|no_information",
-  "matched_alert_ids": [...], "answer_en": "...", "escalate": true|false }
+**In plain words:** Unanswered questions do not die. The app forwards them to the responders, and the first responder who answers closes the loop for everyone who asked. Responders never have to give out their phone numbers.
+
+---
+
+## 5. How notifications reach people
+
+```mermaid
+flowchart LR
+    ALERT[New alert] --> PUSH{Does the resident<br/>have push enabled?}
+    PUSH -->|Yes| WP[🔔 Web Push<br/>Android Chrome: works in browser<br/>iPhone: works once installed to Home Screen]
+    PUSH -->|No| EM[✉️ Email]
+    ALERT --> FEED[📱 In‑app feed updates live<br/>even with no notification permission]
+    WP --> TAP[Tap → opens the alert in the app]
+    EM --> TAP
 ```
-The prompt forbids inventing facts: the model may only cite alerts it was given.
 
-**render(answer_en, language, want_voice)** — translate the answer into the user's language; if the user's last message was a voice note, also generate a voice reply with `gemini-2.5-flash-preview-tts`, convert PCM → OGG/Opus (or MP3) with ffmpeg, host it under `/media/<id>` so Twilio can fetch it, and send as `MediaUrl`.
+**In plain words:** The best channel is a push notification, the same kind Instagram sends. Residents allow it once. If they refuse or are on an iPhone without installing, they still get an email and the feed inside the app updates live.
 
-### 4.5 Alert pipeline (responder sends a report)
-1. understand → structured alert.
-2. Save alert with `expires_at` (default 6 h; `all_clear` closes matching open alerts).
-3. Reply to responder with the structured readback in their language: "Recorded: fight on Kaduna road near the market, danger, 6:31 PM. Sent to 143 residents. Reply 'wrong' to fix."
-4. Broadcast: group residents by language, translate once per language, send to each, record delivery status (`queued/sent/delivered/failed`). Message format:
-   > ⚠️ **Alert · 6:31 PM** — Fight at the bottom of Kaduna road near the market. Avoid the area. *Confirmed by responder Musa.* Ask me "is Kaduna road safe?" any time.
+Technical notes:
+- Web Push uses the browser Push API + a service worker + VAPID keys (generated once, free, no third party). Library: `pywebpush`.
+- iOS Safari supports Web Push from iOS 16.4 **only for PWAs added to the Home Screen**. That is why the install prompt is front and centre.
+- Email via Resend (free tier, one API key) or SMTP. Email is a backup, not the main channel; it is too slow for "right now".
+- The in‑app feed uses Server‑Sent Events (SSE) for live updates, with polling fallback.
 
-### 4.6 Question pipeline (resident asks)
-1. understand → question with location/category.
-2. Fetch open alerts (not expired) in the last 24 h; verify.
-3. Reply in the user's language with one of four shapes, always with a time:
-   - **confirmed**: "Yes — responder Musa confirmed a fight at Kaduna road 12 minutes ago. Avoid it."
-   - **contradicted**: "A responder reported the road clear 8 minutes ago. The message you received is not confirmed."
-   - **unconfirmed_reports**: "3 residents reported this in the last 20 minutes, no responder has confirmed. I've asked them; I'll message you when they answer."
-   - **no_information**: "No responder has reported anything about Kaduna road today. I've asked them. Stay careful until you hear back."
-4. If `escalate`: create an escalation, message all responders with the question. First responder reply becomes an alert and the asker gets the answer.
+---
 
-### 4.7 Resident report pipeline
-Residents can also report ("I see people gathering at the junction"). Stored as `source=resident, status=unconfirmed`. Never broadcast on its own. When ≥ 3 unconfirmed reports cluster on the same location+category within 30 minutes, push one message to responders: "3 residents reported X near Y. Confirm?" A responder reply of "yes/confirm" promotes it to a confirmed alert and broadcasts; "no/false" marks it contradicted and the reporters get told.
+## 6. Screens
 
-## 5. Data model (SQLModel; SQLite for the hackathon, Postgres later)
+```mermaid
+flowchart TD
+    L[Landing page<br/>the story · how it works · Install button] --> S{Sign up / Log in}
+    S -->|I live here| RA[Resident: create account<br/>name · email · password · language · photo]
+    S -->|I am a responder| RR[Responder: create account<br/>+ invite code from the group leader]
+    RA --> RH[Resident home<br/>🔴 live alerts feed<br/>🎤 Ask the AI<br/>🔔 enable notifications]
+    RR --> PH[Responder home<br/>🎤 Post an alert<br/>📋 my alerts · edit / all‑clear<br/>❓ open questions from residents]
+    RH --> ASK[Ask screen<br/>chat with the AI: text or voice<br/>replies in text + voice]
+    RH --> DET[Alert detail<br/>who · when · where · status]
+    PH --> DET
+    AD[Admin / demo screen<br/>everything happening live<br/>for the projector]
+```
 
-- **users**: id, phone (unique), role (`resident|responder`), name, photo_url, language, state, created_at, last_inbound_at
-- **invite_codes**: code, used_by, created_at
-- **messages**: id, user_id, direction, message_sid, body, media_url, media_type, transcript, language, intent, created_at
-- **alerts**: id, source (`responder|resident|escalation`), author_id, category, severity, location, summary_en, raw_transcript, language, status (`open|closed|contradicted|unconfirmed`), created_at, expires_at, confirmed_by, confirmed_at
-- **broadcasts**: id, alert_id, user_id, message_sid, status, error, sent_at
-- **questions**: id, user_id, text_en, location, category, status, matched_alert_ids, answer_en, escalated, answered_at
-- **escalations**: id, question_id, sent_to (responder ids), resolved_by, resolved_alert_id, created_at
+Every screen is mobile‑first. The landing page has the install button (Android/Chrome) or "Add to Home Screen" hint (iOS). "Typing…" / "Listening…" indicators show whenever the AI is working.
 
-## 6. Twilio sandbox specifics
+---
 
-- Number: `+1 415 523 8886`. Join phrase from Console → Messaging → Try it out → WhatsApp.
-- Set **"When a message comes in"** to `https://<ngrok-host>/webhooks/twilio/whatsapp` (POST). Set the status callback to `/webhooks/twilio/status` to track delivery.
-- Inbound media arrives as `MediaUrl0` (audio is `audio/ogg`, images `image/jpeg`). Fetch with HTTP Basic auth (Account SID / Auth Token).
-- Outbound media: give Twilio a public URL (our `/media/...` behind ngrok). Audio goes out as an audio attachment, not a native "voice note" bubble — that is a WhatsApp/Twilio limitation.
-- Typing indicator: Public Beta, needs an **API Key SID + Secret** (not the auth token). Indicator lasts ≤ 25 s.
-- 24‑hour window and 72‑hour auto‑unjoin, as above.
-- Rate: sandbox is fine for a demo of ~20 phones. Broadcasts are sent concurrently with a small semaphore.
+## 7. Technical components
 
-## 7. Repo layout
+```mermaid
+flowchart TB
+    subgraph Browser["Phone browser / installed PWA"]
+        UI[HTML + Tailwind + small JS<br/>Jinja2 templates]
+        SW[Service worker<br/>offline shell + receives push]
+        REC[Voice recorder<br/>records to WAV in browser]
+        PLY[Audio player for AI voice replies]
+    end
+
+    subgraph Server["FastAPI (Python 3.11+)"]
+        AUTH[Auth<br/>email + password, session cookie]
+        API[REST endpoints<br/>/alerts /ask /reports /push/subscribe]
+        SSE[Live feed<br/>Server‑Sent Events]
+        BG[Background tasks<br/>AI calls · broadcasts · escalations]
+        GEM[Gemini client<br/>understand · verify · render · TTS]
+        PUSHC[pywebpush<br/>VAPID keys]
+        MAIL[Resend / SMTP]
+        DBM[(SQLite via SQLModel<br/>Postgres later)]
+        MEDIA[/media: photos, voice notes, TTS replies/]
+    end
+
+    UI --> API
+    REC --> API
+    SW <-- push --> PUSHC
+    API --> BG --> GEM
+    BG --> PUSHC
+    BG --> MAIL
+    API --> DBM
+    BG --> DBM
+    SSE --> UI
+    GEM --> MEDIA --> PLY
+```
+
+**Stack (all Python, no Next.js):**
+- **FastAPI + Jinja2 + Tailwind (CDN)** for pages. Tiny vanilla JS for recorder, install prompt, push subscription, SSE.
+- **SQLModel + SQLite** (single file DB, zero setup). Swap the URL for Postgres on deploy if needed.
+- **Gemini 2.5 Flash** for understanding audio/text/images and for verification. **Gemini 2.5 Flash TTS** for voice replies (returns PCM; we wrap it as WAV in pure Python with the `wave` module, so **no ffmpeg needed**).
+- **Voice input**: the browser records raw PCM via Web Audio and builds a WAV blob in JS (~40 lines). WAV is accepted by Gemini on every browser, avoiding the Chrome‑webm vs Safari‑mp4 mess.
+- **Web Push**: `pywebpush` + VAPID. **Email**: Resend.
+- **Auth**: email + password (passlib/bcrypt), signed session cookie. Responders need an invite code at signup.
+- **Deploy**: Render or Railway free tier (HTTPS is required for PWA install and push). ngrok for local phone testing.
+
+---
+
+## 8. AI layer (three narrow jobs, strict JSON)
+
+```mermaid
+flowchart LR
+    IN[voice / text / photo<br/>+ who is speaking] --> U[understand]
+    U --> J1["{transcript, language, intent,<br/>category, location, severity,<br/>english_summary}"]
+    J1 -->|responder| ALERT[→ alert + broadcast]
+    J1 -->|resident question| V[verify<br/>question + candidate alerts]
+    V --> J2["{status, matched_alert_ids,<br/>answer_en, escalate}"]
+    J2 --> RD[render<br/>translate to user language<br/>+ optional TTS]
+    RD --> OUT[text + voice reply]
+```
+
+- **understand** — one Gemini call with the audio (or text/photo) inline. Returns the JSON above. `intent` ∈ report / question / chat / all_clear.
+- **verify** — gets the resident's structured question plus only the open alerts from the last 24 h. The prompt forbids inventing facts: it may cite only the alerts it was given and must return one of the four statuses. `escalate=true` for unconfirmed / no_information.
+- **render** — translates the English answer into the user's language; if the user spoke, also produces a voice reply. Every answer includes responder name and "X minutes ago".
+
+Guardrails: the AI never says "safe" or "true" without a matched alert; alerts expire (default 6 h); `all_clear` closes matching open alerts; a responder can edit or delete their own alert within the app.
+
+---
+
+## 9. Data model
+
+```mermaid
+erDiagram
+    USER ||--o{ ALERT : posts
+    USER ||--o{ QUESTION : asks
+    USER ||--o{ PUSH_SUBSCRIPTION : has
+    ALERT ||--o{ DELIVERY : "sent as"
+    QUESTION ||--o| ESCALATION : "may create"
+    ESCALATION }o--o| ALERT : "resolved by"
+
+    USER {
+        int id
+        string email
+        string password_hash
+        string name
+        string role "resident | responder"
+        string language "yo | ha | ig | en | pcm"
+        string photo_url
+        bool email_notifications
+        datetime created_at
+    }
+    INVITE_CODE {
+        string code
+        int used_by
+    }
+    ALERT {
+        int id
+        int author_id
+        string source "responder | resident | escalation"
+        string category "fight | robbery | roadblock | fire | movement | all_clear | other"
+        string severity "info | caution | danger"
+        string location
+        string summary_en
+        string transcript
+        string language
+        string audio_url
+        string status "open | closed | contradicted | unconfirmed"
+        datetime created_at
+        datetime expires_at
+    }
+    QUESTION {
+        int id
+        int user_id
+        string text_en
+        string location
+        string category
+        string status "confirmed | contradicted | unconfirmed_reports | no_information"
+        string answer_en
+        string answer_audio_url
+        datetime created_at
+    }
+    ESCALATION {
+        int id
+        int question_id
+        int resolved_alert_id
+        datetime created_at
+    }
+    PUSH_SUBSCRIPTION {
+        int id
+        int user_id
+        string endpoint
+        string p256dh
+        string auth
+    }
+    DELIVERY {
+        int id
+        int alert_id
+        int user_id
+        string channel "push | email | feed"
+        string status "sent | failed"
+    }
+```
+
+---
+
+## 10. Repo layout
 
 ```
 ktechfest-ai/
   app/
-    main.py              # FastAPI app, routers, static, templates
-    config.py            # settings from .env
-    db.py                # engine, session, models
-    twilio_client.py     # send, typing indicator, media fetch, signature check
-    gemini.py            # understand / verify / render / tts
-    router.py            # per-user state machine
+    main.py                 # FastAPI app, routes, static, templates
+    config.py               # settings from .env
+    db.py                   # SQLModel models + session
+    auth.py                 # signup / login / session
+    gemini.py               # understand / verify / render / tts (WAV)
+    notify.py               # web push + email + SSE broker
     pipelines/
-      alerts.py          # report → alert → broadcast
-      questions.py       # question → verify → answer/escalate
-      reports.py         # resident reports + clustering
-      onboarding.py
+      alerts.py             # report → alert → broadcast
+      questions.py          # question → verify → answer / escalate
+      reports.py            # resident reports + clustering (stretch)
     web/
-      templates/         # landing, join pages, admin
-      static/            # css, js, manifest, sw.js, icons
-  media/                 # generated TTS files (gitignored)
+      templates/            # landing, auth, resident, responder, admin
+      static/
+        app.js              # recorder (WAV), install prompt, push subscribe, SSE
+        sw.js               # service worker: shell cache + push handler
+        manifest.webmanifest
+        icons/
+  media/                    # uploads + generated audio (gitignored)
   tests/
   architecture.md
   README.md
@@ -165,43 +346,52 @@ ktechfest-ai/
   requirements.txt
 ```
 
-## 8. Keys and accounts to gather
+---
+
+## 11. Keys and setup
 
 | Item | Where | Env var |
 |---|---|---|
-| Twilio Account SID | Console home | `TWILIO_ACCOUNT_SID` |
-| Twilio Auth Token | Console home | `TWILIO_AUTH_TOKEN` |
-| Twilio API Key SID + Secret | Console → Account → API keys & tokens → Create (Standard) | `TWILIO_API_KEY_SID`, `TWILIO_API_KEY_SECRET` |
-| Sandbox number | Messaging → Try it out → Send a WhatsApp message | `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886` |
-| Sandbox join phrase | same page ("join xxx-yyy") | `TWILIO_SANDBOX_JOIN_WORD` |
 | Gemini API key | aistudio.google.com → Get API key | `GEMINI_API_KEY` |
-| ngrok authtoken | dashboard.ngrok.com | used by `ngrok config add-authtoken` |
-| Responder page passphrase | you choose | `RESPONDER_PAGE_PASSPHRASE` |
-| App secret | random | `APP_SECRET` |
+| VAPID public/private keys | generated once locally: `vapid --gen` (from `py-vapid`) | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CLAIMS_EMAIL` |
+| Resend API key (email) | resend.com → API keys (free tier) | `RESEND_API_KEY`, `EMAIL_FROM` |
+| App secret (sessions) | random string | `APP_SECRET` |
+| Responder invite code(s) | you choose | `RESPONDER_INVITE_CODES=KTF-2026,...` |
+| Public URL | ngrok or Render URL | `PUBLIC_BASE_URL` |
 
-Local tools needed on the Mac: **Python 3.11+** (system Python is 3.9 — install via `brew install python@3.12` or `uv`), **ffmpeg** (`brew install ffmpeg`), **ngrok** (`brew install ngrok`).
+Local tools: **Python 3.11+** (`brew install python@3.12`; system Python 3.9 is too old), **ngrok** (`brew install ngrok`) for testing on real phones. No ffmpeg, no Twilio.
 
-## 9. Build order
+---
 
-1. **Skeleton + webhook echo** — FastAPI, ngrok, sandbox joined, bot echoes text. Typing indicator working.
-2. **Understand** — voice note in Yoruba/Hausa/Igbo → transcript + language + intent, reply in same language. Image receipt.
-3. **Onboarding** — invite code, name, photo, roles.
-4. **Alerts + broadcast** — responder report → structured alert → translated broadcast to all residents. Admin feed shows it live.
-5. **Questions + verify** — the four answer states with timestamps. Escalation to responders and the loop back.
-6. **Voice replies** — TTS in user's language when they spoke.
-7. **Landing page + PWA + QR codes**.
-8. **Resident reports + clustering** (if time).
-9. Demo rehearsal with 3–4 phones.
+## 12. Build order (72 hours)
 
-## 10. Demo script (what the judges see)
+| Day | Milestone | Done when |
+|---|---|---|
+| 1 AM | Skeleton: FastAPI, DB, auth, resident + responder shells, deploy to Render | You can sign up on your phone over HTTPS |
+| 1 PM | Voice in → Gemini understand → reply in same language, text + voice out | Yoruba voice note gets a Yoruba answer |
+| 1 PM | Responder posts alert → stored → live feed via SSE | Alert appears on a second phone without refresh |
+| 2 AM | Web Push + email broadcast, install button + iOS hint | Phone buzzes while app is closed |
+| 2 PM | Ask the AI: four‑state verify with names and times; escalation loop | Demo script §13 runs end to end |
+| 3 AM | Landing page polish, admin/demo screen, photos in onboarding | Looks like a product |
+| 3 PM | Rehearse with 3 phones, record a backup video, write submission | Nothing left to chance |
 
-1. Projector shows `/admin`, empty feed. Phone A (resident, Yoruba), Phone B (responder, Hausa), Phone C (resident, English).
-2. Phone A asks in Yoruba voice: "Is Kaduna road safe?" → typing… → "No responder has reported anything about Kaduna road today. I've asked them."
-3. Phone B receives the escalation, replies with a Hausa voice note: "There is a fight near the market, people should avoid it."
-4. Feed shows the alert. Phone A gets the confirmed answer in Yoruba, Phone C gets the broadcast in English, both within seconds.
-5. Phone C forwards a rumour: "They say the whole town is being attacked, true?" → "A responder confirmed a fight near the market 2 minutes ago. Nothing about an attack on the town. Avoid the market area."
-6. Phone B sends "all clear" → residents get the update.
+Stretch: resident reports + clustering; per‑area subscriptions; WhatsApp adapter stub for the pitch.
 
-## 11. Production path (say this in the pitch)
+---
 
-WhatsApp Business API with two verified senders (responders / residents), approved alert templates so broadcasts work outside the 24‑hour window, Postgres + a real queue (Redis/RQ), responder verification through the local government or traditional ruler's office, SMS fallback for feature phones, and per‑ward geofencing so people only get alerts for their area.
+## 13. Demo script
+
+1. Projector: admin screen, empty. Phone A = Amara (Yoruba), Phone B = Musa (responder, Hausa), Phone C = resident (English), app closed on A and C.
+2. Amara opens the app, holds the mic: *"Ṣé ojú ọ̀nà Kaduna dára?"* (Is Kaduna road safe?). Typing indicator. Reply in Yoruba text + voice: *no responder has reported anything, I've asked them.*
+3. Musa's phone buzzes with the question. He records in Hausa: fight near the market, avoid it.
+4. Within seconds: admin screen shows the alert; Phone A buzzes (Yoruba); Phone C buzzes (English), both with the app closed.
+5. Phone C types the rumour: *"They say the whole town is under attack?"* → *"Musa confirmed a fight near the market 2 min ago. Nothing about an attack on the town."*
+6. Musa posts "all clear". Everyone gets the update. Amara goes home.
+
+---
+
+## 14. What changed versus the WhatsApp plan, and what to say about it
+
+- **Lost:** "Amara already has WhatsApp". **Gained:** zero third‑party risk, an install button, push that works with the app closed, a proper UI for responders (edit, all‑clear, open questions), and full control over the demo.
+- The engine (understand → alert → verify → notify) is untouched. WhatsApp/SMS become adapters in `notify.py` and an inbound webhook, which is exactly the upgrade to promise for the final.
+- Typing indicator is now trivial: it is just UI state while the request is in flight.
