@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     gemini_api_key: str
+    gemini_api_keys: str = ""  # optional comma-separated extra keys for rotation
     gemini_model: str = "gemini-3.6-flash"
     gemini_tts_model: str = "gemini-3.1-flash-tts-preview"
     vapid_public_key: str
@@ -15,8 +16,15 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:8000"
     mongodb_uri: str
     mongodb_db: str = "saferoad"
+    resend_api_key: str = ""
+    email_from: str = "SafeRoad <noreply@example.com>"
     alert_ttl_hours: int = 6
     timezone: str = "Africa/Lagos"
+
+    @property
+    def all_gemini_keys(self) -> list[str]:
+        keys = [self.gemini_api_key] + [k.strip() for k in self.gemini_api_keys.split(",") if k.strip()]
+        return list(dict.fromkeys(keys))
 
     @property
     def invite_codes(self) -> set[str]:

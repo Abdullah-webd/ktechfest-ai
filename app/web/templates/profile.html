@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% from "_icons.html" import icon %}{% from "_shell.html" import sidebar, topbar, tabbar %}
+{% block title %}Profile · SafeRoad{% endblock %}
+{% block body %}
+<div class="shell">
+  {{ sidebar(user, 'profile') }}
+  <div class="flex flex-col min-h-0 h-full bg-white">
+    {{ topbar(user, 'Profile', user.email) }}
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-2xl mx-auto px-4 py-5 sm:px-6 lg:py-8">
+        <h1 class="hidden lg:block font-display font-bold text-2xl mb-6">Profile</h1>
+        {% if saved %}<div class="alert-box alert-ok mb-5">{{ icon('check-circle','w-5 h-5 shrink-0') }}<span>Saved.</span></div>{% endif %}
+        <form method="post" action="/profile" enctype="multipart/form-data" class="space-y-6">
+          <div class="flex items-center gap-4">
+            <label class="avatar-pick" for="photo">
+              <img id="photo-preview" src="{{ user.photo_url or '' }}" alt="" {{ '' if user.photo_url else 'hidden' }}><span id="photo-placeholder" {{ 'hidden' if user.photo_url }}>{{ icon('camera','w-6 h-6') }}</span>
+              <input id="photo" name="photo" type="file" accept="image/*" class="sr-only" onchange="SafeRoad.previewPhoto(this)">
+            </label>
+            <div><p class="font-display font-bold">{{ user.name }}</p><p class="text-sm text-muted"><span class="capitalize">{{ user.role }}</span> · {{ user.email }}</p><label for="photo" class="link text-sm cursor-pointer">Change photo</label></div>
+          </div>
+          <div class="field"><label for="name">Full name</label><input id="name" name="name" value="{{ user.name }}" required></div>
+          <div class="field"><label for="language">Language you prefer</label><select id="language" name="language">{% for code,label in LANGUAGES.items() %}<option value="{{code}}" {{ 'selected' if user.language==code }}>{{label}}</option>{% endfor %}</select><p class="hint">Alerts are delivered to you in this language.</p></div>
+          {% if user.role=='responder' %}
+          <div class="field"><label for="phone">Phone number residents can call</label><input id="phone" name="phone" type="tel" value="{{ user.phone or '' }}"></div>
+          <div class="field"><label for="area">Area you cover</label><input id="area" name="area" value="{{ user.area or '' }}" placeholder="Kaduna road, market side"></div>
+          {% endif %}
+          <button class="btn btn-primary btn-lg" type="submit">Save changes</button>
+        </form>
+
+        <div class="mt-10 grid gap-3">
+          {% if user.role=='responder' %}
+          <div class="live-card flex items-center justify-between gap-4"><div><p class="font-semibold">On duty</p><p class="text-sm text-muted">Residents who get no answer can call you directly.</p></div><button class="switch duty-switch {{ 'on' if user.on_duty }}" onclick="SafeRoad.toggleDuty(this)" aria-label="Toggle on duty"></button></div>
+          {% endif %}
+          <div class="live-card flex items-center justify-between gap-4"><div><p class="font-semibold">Push notifications</p><p class="text-sm text-muted">{{ subs }} device{{ '' if subs==1 else 's' }} receiving alerts.</p></div><button id="enable-push" class="btn btn-primary btn-sm" onclick="SafeRoad.enablePush()">{{ icon('bell','w-4 h-4') }}<span>Turn on</span></button></div>
+          <div class="live-card flex items-center justify-between gap-4"><div><p class="font-semibold">Install SafeRoad</p><p class="text-sm text-muted">Add it to your home screen for the fastest access.</p></div><button class="btn btn-ghost btn-sm install-btn" onclick="SafeRoad.install()">{{ icon('download','w-4 h-4') }} Install</button></div>
+          <a href="/logout" class="live-card flex items-center justify-between gap-4 hover:bg-surface"><div><p class="font-semibold">Log out</p><p class="text-sm text-muted">You can log back in any time.</p></div>{{ icon('logout','w-5 h-5 text-muted') }}</a>
+        </div>
+      </div>
+    </main>
+    {{ tabbar('profile') }}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% from "_icons.html" import icon %}
+{% macro sidebar(user, page) %}
+<aside class="sidebar">
+  <a href="/" class="flex items-center gap-2.5 font-display font-bold text-lg px-2"><img src="/static/icons/icon-192.png" class="w-8 h-8 rounded-lg" alt="">SafeRoad</a>
+  <nav class="mt-8 flex flex-col gap-1">
+    <a href="/chat" class="nav-item {{ 'on' if page=='chat' }}">{{ icon('chat','w-5 h-5') }} Chat</a>
+    <a href="/alerts" class="nav-item {{ 'on' if page=='alerts' }}">{{ icon('megaphone','w-5 h-5') }} Alerts</a>
+    <a href="/profile" class="nav-item {{ 'on' if page=='profile' }}">{{ icon('user','w-5 h-5') }} Profile</a>
+  </nav>
+  <div class="mt-6 flex flex-col gap-2">
+    <button id="enable-push" class="btn btn-primary btn-sm justify-start" onclick="SafeRoad.enablePush()">{{ icon('bell','w-4 h-4') }}<span>Turn on alerts</span></button>
+    <button class="btn btn-ghost btn-sm justify-start install-btn" onclick="SafeRoad.install()">{{ icon('download','w-4 h-4') }} Install app</button>
+  </div>
+  {% if user.role=='responder' %}
+  <div class="mt-6 live-card flex items-center justify-between gap-3">
+    <div><p class="text-sm font-semibold">On duty</p><p class="text-xs text-muted">Residents can call you</p></div>
+    <button class="switch duty-switch {{ 'on' if user.on_duty }}" onclick="SafeRoad.toggleDuty(this)" aria-label="Toggle on duty"></button>
+  </div>
+  {% endif %}
+  <div class="mt-auto pt-6 flex items-center gap-3 px-1">
+    {% if user.photo_url %}<img src="{{ user.photo_url }}" class="w-9 h-9 rounded-full object-cover" alt="">{% else %}<span class="w-9 h-9 rounded-full bg-brand-50 text-brand-600 font-bold flex items-center justify-center">{{ user.name[:1] }}</span>{% endif %}
+    <div class="min-w-0 flex-1"><p class="text-sm font-semibold truncate">{{ user.name }}</p><p class="text-xs text-muted capitalize">{{ user.role }} · {{ LANGUAGES[user.language] }}</p></div>
+    <a href="/logout" class="icon-btn" title="Log out">{{ icon('logout','w-4 h-4') }}</a>
+  </div>
+</aside>
+{% endmacro %}
+
+{% macro topbar(user, title, subtitle) %}
+<header class="topbar lg:hidden">
+  <div class="px-4 py-2.5 flex items-center gap-3">
+    <img src="/static/icons/icon-192.png" class="w-9 h-9 rounded-xl" alt="">
+    <div class="min-w-0 flex-1"><p class="font-display font-bold leading-tight">{{ title }}</p><p class="text-xs text-muted truncate">{{ subtitle }}</p></div>
+    <button id="enable-push-m" class="icon-btn" onclick="SafeRoad.enablePush()" aria-label="Turn on alerts">{{ icon('bell','w-5 h-5') }}</button>
+    <button class="icon-btn install-btn" onclick="SafeRoad.install()" aria-label="Install app">{{ icon('download','w-5 h-5') }}</button>
+  </div>
+</header>
+{% endmacro %}
+
+{% macro tabbar(page) %}
+<nav class="tabbar">
+  <a href="/chat" class="tab {{ 'on' if page=='chat' }}">{{ icon('chat','w-6 h-6') }}Chat</a>
+  <a href="/alerts" class="tab {{ 'on' if page=='alerts' }}">{{ icon('megaphone','w-6 h-6') }}Alerts</a>
+  <a href="/profile" class="tab {{ 'on' if page=='profile' }}">{{ icon('user','w-6 h-6') }}Profile</a>
+</nav>
+{% endmacro %}
+
+{% macro alert_card(a, lang, compact=False) %}
+<div class="alert-card sev-{{ a.severity }} {{ 'all_clear' if a.category=='all_clear' }}" data-alert-id="{{ a.id }}">
+  <div class="flex items-start justify-between gap-2">
+    <div class="flex flex-wrap gap-1.5">
+      {% if a.category=='all_clear' %}<span class="chip chip-ok">{{ icon('check-circle','w-3 h-3') }} All clear</span>
+      {% else %}<span class="chip chip-{{ 'danger' if a.severity=='danger' else ('caution' if a.severity=='caution' else 'info') }}">{{ a.severity }}</span><span class="chip chip-muted">{{ a.category.replace('_',' ') }}</span>{% endif %}
+      {% if a.status=='closed' %}<span class="chip chip-muted">closed</span>{% endif %}
+    </div>
+    <span class="text-xs text-muted whitespace-nowrap">{{ a.time }}</span>
+  </div>
+  {% if a.location %}<p class="mt-2 text-sm font-semibold flex items-center gap-1">{{ icon('pin','w-3.5 h-3.5 text-muted') }} {{ a.location }}</p>{% endif %}
+  <p class="mt-1 text-[.95rem] leading-relaxed">{{ a.translations.get(lang) or a.summary_en }}</p>
+  <div class="mt-3 flex items-center gap-2 text-xs text-muted">
+    {% if a.author_photo %}<img src="{{ a.author_photo }}" class="w-5 h-5 rounded-full object-cover" alt="">{% else %}<span class="w-5 h-5 rounded-full bg-brand-50 text-brand-600 text-[10px] font-bold flex items-center justify-center">{{ a.author[:1] }}</span>{% endif %}
+    <span>Confirmed by <b class="text-ink">{{ a.author }}</b> · {{ a.ago }}</span>
+  </div>
+</div>
+{% endmacro %}

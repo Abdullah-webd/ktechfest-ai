@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% from "_icons.html" import icon %}{% from "_auth_layout.html" import auth_shell %}
+{% block title %}Reset password · SafeRoad{% endblock %}
+{% block body %}
+{% call auth_shell('Forgot your password?', 'Enter your email and we will send you a code to set a new one.') %}
+<form method="post" action="/forgot" class="mt-6 space-y-5">
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required placeholder="you@example.com" autocomplete="email"></div>
+  <button class="btn btn-primary w-full btn-lg" type="submit">Send reset code</button>
+  <p class="text-center text-sm text-muted"><a href="/login" class="link">Back to log in</a></p>
+</form>
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% macro auth_shell(title, subtitle) %}
+<div class="min-h-screen lg:grid lg:grid-cols-[1.05fr_1fr]">
+  <aside class="hidden lg:flex flex-col justify-between bg-ink text-white p-12 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-[.35]" style="background:radial-gradient(60% 50% at 20% 10%,rgba(15,157,110,.55),transparent 70%),radial-gradient(40% 40% at 90% 90%,rgba(29,78,216,.45),transparent 70%)"></div>
+    <a href="/" class="relative flex items-center gap-2.5 font-display font-bold text-xl"><img src="/static/icons/icon-192.png" class="w-9 h-9 rounded-xl" alt="">SafeRoad</a>
+    <div class="relative max-w-md">
+      <p class="text-brand-100 text-sm font-semibold tracking-wide uppercase">6:40 PM · closing time</p>
+      <h2 class="font-display font-bold text-4xl leading-tight mt-3 text-balance">Know whether the road home is safe, before you take it.</h2>
+      <p class="text-white/70 mt-4 leading-relaxed">Responders post what they see. You hear it in your language within seconds, and you can ask the assistant about any rumour before it empties the market.</p>
+      <div class="mt-8 flex flex-wrap gap-2 text-sm">{% for l in ['Yorùbá','Hausa','Igbo','Pidgin','English'] %}<span class="px-3 py-1 rounded-full bg-white/10 border border-white/15">{{ l }}</span>{% endfor %}</div>
+    </div>
+    <p class="relative text-white/50 text-sm">Built for communities on the edge of trouble.</p>
+  </aside>
+  <main class="flex flex-col px-5 py-8 sm:px-10 lg:px-16 lg:py-12">
+    <a href="/" class="lg:hidden flex items-center gap-2 font-display font-bold text-lg mb-10"><img src="/static/icons/icon-192.png" class="w-8 h-8 rounded-lg" alt="">SafeRoad</a>
+    <div class="max-w-md w-full mx-auto my-auto">
+      <h1 class="font-display font-bold text-3xl text-balance">{{ title }}</h1>
+      {% if subtitle %}<p class="text-muted mt-2">{{ subtitle }}</p>{% endif %}
+      {{ caller() }}
+    </div>
+  </main>
+</div>
+{% endmacro %}

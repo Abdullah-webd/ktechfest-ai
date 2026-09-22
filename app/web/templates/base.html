@@ -2,71 +2,45 @@
 <html lang="en" class="h-full">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>{% block title %}SafeRoad{% endblock %}</title>
 <meta name="description" content="Verified community safety alerts, in your language, in seconds.">
-<meta name="theme-color" content="#0B1220">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/static/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="SafeRoad">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={theme:{extend:{colors:{ink:'#0B1220',card:'#131C2E',line:'#22304A',amber:'#F5A524',mint:'#22C55E',rose:'#EF4444',sky:'#38BDF8'},fontFamily:{sans:['Inter','system-ui','-apple-system','Segoe UI','Roboto','sans-serif']}}}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  html,body{background:#0B1220;color:#E5E7EB;-webkit-tap-highlight-color:transparent}
-  body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-  .glow{background:radial-gradient(60% 50% at 50% 0%,rgba(245,165,36,.18),transparent 70%)}
-  .card{background:#131C2E;border:1px solid #22304A;border-radius:1rem}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:.875rem;padding:.8rem 1.1rem;font-weight:600;transition:.15s;cursor:pointer}
-  .btn-amber{background:#F5A524;color:#0B1220}.btn-amber:hover{background:#fbb63d}
-  .btn-ghost{border:1px solid #2b3b58;color:#E5E7EB}.btn-ghost:hover{background:#1a2540}
-  .btn-mint{background:#22C55E;color:#04160a}.btn-mint:hover{background:#34d86f}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .rec{background:#EF4444!important;color:#fff!important;box-shadow:0 0 0 10px rgba(239,68,68,.25);animation:pulse 1.2s ease-in-out infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-  .typing span{display:inline-block;width:6px;height:6px;margin:0 1px;background:#9CA3AF;border-radius:50%;animation:b 1s infinite}
-  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
-  @keyframes b{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
-  .badge{font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:.2rem .5rem;border-radius:.5rem;white-space:nowrap}
-  .sev-danger{background:rgba(239,68,68,.15);color:#FCA5A5}.sev-caution{background:rgba(245,165,36,.15);color:#FCD34D}.sev-info{background:rgba(56,189,248,.15);color:#7DD3FC}
-  .st-confirmed{background:rgba(34,197,94,.15);color:#86EFAC}.st-contradicted{background:rgba(56,189,248,.15);color:#7DD3FC}.st-unconfirmed_reports{background:rgba(245,165,36,.15);color:#FCD34D}.st-no_information{background:rgba(156,163,175,.15);color:#D1D5DB}
-  .cat-all_clear{background:rgba(34,197,94,.15);color:#86EFAC}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(1rem + env(safe-area-inset-bottom));z-index:60;max-width:92vw}
-  input,textarea,select{background:#0F172A;border:1px solid #22304A;color:#E5E7EB;border-radius:.75rem;padding:.75rem .9rem;width:100%}
-  input:focus,textarea:focus,select:focus{outline:2px solid #F5A524;border-color:transparent}
-  .bubble{max-width:88%;border-radius:1.1rem;padding:.7rem .95rem;line-height:1.45}
-  .bubble-me{background:#F5A524;color:#0B1220;border-bottom-right-radius:.3rem;margin-left:auto}
-  .bubble-ai{background:#1a2540;border:1px solid #22304A;border-bottom-left-radius:.3rem}
-  .fade-in{animation:fi .3s ease-out}@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  .switch{width:46px;height:26px;border-radius:13px;background:#374151;position:relative;transition:.2s;flex-shrink:0}
-  .switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
-  .switch.on{background:#22C55E}.switch.on::after{left:23px}
-  [hidden]{display:none!important}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{ink:'#0B1526',muted:'#5B6B82',line:'#E4E8EF',surface:'#F7F8FA',brand:{50:'#ECFDF5',100:'#D1FAE5',500:'#0F9D6E',600:'#0B8A60',700:'#087251'},danger:{50:'#FEF3F2',600:'#D92D20',700:'#B42318'},caution:{50:'#FFF6ED',600:'#C4320A',700:'#9C2A10'},info:{50:'#EFF4FF',600:'#1D4ED8'}},fontFamily:{display:['Sora','Inter','system-ui','sans-serif'],sans:['Inter','system-ui','-apple-system','Segoe UI','Roboto','sans-serif']},boxShadow:{soft:'0 1px 2px rgba(11,21,38,.05),0 8px 24px -12px rgba(11,21,38,.12)',pop:'0 12px 40px -12px rgba(11,21,38,.25)'}}}}</script>
+<link rel="stylesheet" href="/static/app.css?v=4">
 {% block head %}{% endblock %}
 </head>
-<body class="min-h-full font-sans">
+<body class="min-h-full bg-white text-ink font-sans antialiased">
 {% block body %}{% endblock %}
 <div id="toast" class="toast" hidden></div>
-<div id="ios-hint" class="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4" hidden>
-  <div class="card p-6 w-full max-w-md">
-    <h3 class="text-lg font-bold mb-2">Add SafeRoad to your Home Screen</h3>
-    <p class="text-sm text-gray-300 mb-4">On iPhone, notifications only work once the app is on your Home Screen. It takes two taps:</p>
-    <ol class="space-y-3 text-sm">
-      <li class="flex gap-3"><span class="w-7 h-7 rounded-full bg-amber text-ink font-bold flex items-center justify-center shrink-0">1</span><span>Tap the <b>Share</b> button <svg class="inline w-4 h-4 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg> at the bottom of Safari.</span></li>
-      <li class="flex gap-3"><span class="w-7 h-7 rounded-full bg-amber text-ink font-bold flex items-center justify-center shrink-0">2</span><span>Scroll and tap <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
-      <li class="flex gap-3"><span class="w-7 h-7 rounded-full bg-amber text-ink font-bold flex items-center justify-center shrink-0">3</span><span>Open <b>SafeRoad</b> from your Home Screen and tap <b>Enable alerts</b>.</span></li>
+<div id="ios-hint" class="modal" hidden>
+  <div class="modal-card">
+    <div class="flex items-start justify-between gap-4">
+      <h3 class="font-display font-bold text-lg">Add SafeRoad to your Home Screen</h3>
+      <button class="icon-btn" onclick="document.getElementById('ios-hint').hidden=true" aria-label="Close">{{ icon('x','w-5 h-5') }}</button>
+    </div>
+    <p class="text-sm text-muted mt-1">On iPhone, notifications only work once the app is on your Home Screen. Three taps:</p>
+    <ol class="mt-4 space-y-3 text-sm">
+      <li class="step"><span class="step-n">1</span><span>Tap <b>Share</b> {{ icon('share','w-4 h-4 inline -mt-0.5 text-info-600') }} at the bottom of Safari.</span></li>
+      <li class="step"><span class="step-n">2</span><span>Scroll down and tap <b>Add to Home Screen</b> {{ icon('plus-square','w-4 h-4 inline -mt-0.5') }}, then <b>Add</b>.</span></li>
+      <li class="step"><span class="step-n">3</span><span>Open <b>SafeRoad</b> from your Home Screen and tap <b>Turn on alerts</b>.</span></li>
     </ol>
-    <button class="btn btn-amber w-full mt-5" onclick="document.getElementById('ios-hint').hidden=true">Got it</button>
+    <button class="btn btn-primary w-full mt-5" onclick="document.getElementById('ios-hint').hidden=true">Got it</button>
   </div>
 </div>
-<script>window.VAPID_PUBLIC_KEY="{{ VAPID_PUBLIC_KEY }}";window.USER={{ ({'id':user.id,'role':user.role,'language':user.language,'name':user.name} if user else None)|tojson }};</script>
-<script src="/static/app.js?v=3"></script>
+<script>window.VAPID_PUBLIC_KEY="{{ VAPID_PUBLIC_KEY }}";window.USER={{ ({'id':user.id,'role':user.role,'language':user.language,'name':user.name,'first':user.first_name} if user else None)|tojson }};</script>
+<script src="/static/app.js?v=4"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

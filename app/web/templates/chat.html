@@ -1,0 +1,69 @@
+{% extends "base.html" %}{% from "_icons.html" import icon %}{% from "_shell.html" import sidebar, topbar, tabbar, alert_card %}
+{% block title %}Chat · SafeRoad{% endblock %}
+{% block body %}
+<div class="shell with-panel">
+  {{ sidebar(user, 'chat') }}
+  <div class="chat-main">
+    {{ topbar(user, 'SafeRoad', ('Responder line · ' ~ ('on duty' if user.on_duty else 'off duty')) if user.role=='responder' else 'Ask about any road or area') }}
+    <div class="hidden lg:flex items-center justify-between px-6 py-3.5 border-b border-line">
+      <div class="flex items-center gap-3"><span class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">{{ icon('sparkles','w-5 h-5') }}</span><div><p class="font-display font-bold leading-tight">SafeRoad assistant</p><p class="text-xs text-muted">{% if user.role=='responder' %}Everything you post reaches every resident in their language{% else %}Answers only from what responders have reported{% endif %}</p></div></div>
+      <span class="text-xs text-muted flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-brand-500" id="live-dot"></span>Live</span>
+    </div>
+    <div class="chat-scroll" id="scroll">
+      <div class="chat-inner" id="chat">
+        {% set ns = namespace(day=None) %}
+        {% for m in messages %}
+          {% if m.day != ns.day %}{% set ns.day = m.day %}<div class="day">{{ m.day }}</div>{% endif %}
+          <div class="msg {{ 'me' if m.role=='user' else 'ai' }}" data-id="{{ m.id }}">
+            {% if m.kind=='alert' and m.alert %}
+              {{ alert_card(m.alert, user.language) }}
+              <div class="msg-actions"><button class="btn btn-ghost" onclick="SafeRoad.speak('{{ m.id }}', this)">{{ icon('volume','w-4 h-4') }} Listen</button></div>
+            {% elif m.kind=='voice' %}
+              <div class="bubble"><div class="voice" data-src="{{ m.audio_url }}"><button class="voice-btn" onclick="SafeRoad.playVoice(this)" aria-label="Play voice note">{{ icon('play','w-4 h-4') }}</button><div class="bars">{% for i in range(22) %}<i style="height:{{ [6,10,14,18,12,8,16,20,11,7][i%10] }}px"></i>{% endfor %}</div></div>{% if m.text %}<p class="mt-2 text-sm opacity-90">{{ m.text }}</p>{% endif %}</div>
+            {% else %}
+              <div class="bubble {{ 'system' if m.kind=='system' }}">
+                {% if m.kind=='escalation' %}<span class="chip chip-caution mb-1.5">{{ icon('help','w-3 h-3') }} Resident asking</span>{% elif m.kind=='update' %}<span class="chip {{ 'st-'+m.status if m.status else 'chip-info' }} mb-1.5">{{ icon('zap','w-3 h-3') }} Update</span>{% elif m.status %}<span class="chip st-{{ m.status }} mb-1.5">{{ m.status.replace('_',' ') }}</span>{% endif %}
+                <p>{{ m.text }}</p>
+                {% if m.alert %}<div class="mt-2.5">{{ alert_card(m.alert, user.language) }}</div>{% endif %}
+                {% if m.role=='assistant' and m.kind!='system' %}<div class="msg-actions">
+                  <button class="btn btn-ghost" onclick="SafeRoad.speak('{{ m.id }}', this)" data-audio="{{ m.audio_url or '' }}">{{ icon('volume','w-4 h-4') }} Listen</button>
+                  {% if m.contact %}<a class="btn btn-call" href="tel:{{ m.contact.phone }}">{{ icon('phone','w-4 h-4') }} Call {{ m.contact.name.split(' ')[0] }}</a>{% endif %}
+                </div>{% endif %}
+              </div>
+            {% endif %}
+            <div class="meta">{{ m.time }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="composer">
+      <form class="composer-inner" id="composer" onsubmit="return SafeRoad.submitText(event)">
+        <div class="flex-1 min-w-0" id="input-wrap"><textarea id="text-input" rows="1" placeholder="{{ 'Say what you see…' if user.role=='responder' else 'Ask if a road is safe…' }}" oninput="SafeRoad.autosize(this)" onkeydown="SafeRoad.enterToSend(event)"></textarea></div>
+        <div class="rec-bar" id="rec-bar" hidden><span class="dot"></span><span id="rec-time">0:00</span><span class="text-muted font-normal ml-auto">Tap ■ to send</span></div>
+        <button type="submit" class="send" id="send-btn" aria-label="Send" disabled>{{ icon('send','w-5 h-5') }}</button>
+        <button type="button" class="mic" id="mic" aria-label="Record a voice note" onclick="SafeRoad.toggleRecord()">{{ icon('mic','w-5 h-5') }}</button>
+      </form>
+      <p class="hint-row">Speak or type in Yorùbá, Hausa, Igbo, Pidgin or English.</p>
+    </div>
+    {{ tabbar('chat') }}
+  </div>
+  <aside class="panel p-5 gap-4">
+    <div class="flex items-center justify-between"><h2 class="font-display font-bold">Live alerts</h2><a href="/alerts" class="link text-sm">See all</a></div>
+    <div id="live-list" class="flex flex-col gap-3">
+      {% for a in live_alerts %}{{ alert_card(a, user.language) }}{% else %}<p id="live-empty" class="text-sm text-muted live-card">No open alerts right now. Responders' posts appear here the moment they are made.</p>{% endfor %}
+    </div>
+    {% if user.role=='responder' %}
+    <div class="mt-4 flex items-center justify-between"><h2 class="font-display font-bold">Residents waiting</h2><span class="chip chip-caution" id="waiting-count">{{ waiting|length }}</span></div>
+    <div id="waiting-list" class="flex flex-col gap-2">
+      {% for q in waiting %}<div class="live-card text-sm" data-question-id="{{ q.id }}"><p class="font-medium">{{ q.text_en }}</p><p class="text-xs text-muted mt-1">{{ q.asker }} · {{ q.ago }}{% if q.location %} · {{ q.location }}{% endif %}</p></div>{% else %}<p id="waiting-empty" class="text-sm text-muted live-card">No one is waiting. Questions nobody has answered land here and in your chat.</p>{% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+</div>
+<template id="icon-play">{{ icon('play','w-4 h-4') }}</template><template id="icon-pause">{{ icon('pause','w-4 h-4') }}</template>
+<template id="icon-volume">{{ icon('volume','w-4 h-4') }}</template><template id="icon-loader">{{ icon('loader','w-4 h-4 animate-spin') }}</template>
+<template id="icon-mic">{{ icon('mic','w-5 h-5') }}</template><template id="icon-stop">{{ icon('square','w-5 h-5') }}</template>
+<template id="icon-phone">{{ icon('phone','w-4 h-4') }}</template><template id="icon-pin">{{ icon('pin','w-3.5 h-3.5 text-muted') }}</template>
+<template id="icon-check">{{ icon('check-circle','w-3 h-3') }}</template><template id="icon-help">{{ icon('help','w-3 h-3') }}</template><template id="icon-zap">{{ icon('zap','w-3 h-3') }}</template>
+{% endblock %}
+{% block scripts %}<script>SafeRoad.chatInit();</script>{% endblock %}

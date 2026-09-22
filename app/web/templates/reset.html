@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% from "_icons.html" import icon %}{% from "_auth_layout.html" import auth_shell %}
+{% block title %}Set a new password · SafeRoad{% endblock %}
+{% block body %}
+{% call auth_shell('Set a new password', 'If ' ~ (email or 'that email') ~ ' has an account, a 6-digit code is on its way.') %}
+{% if error %}<div class="alert-box alert-error mt-5">{{ icon('alert','w-5 h-5 shrink-0') }}<span>{{ error }}</span></div>{% endif %}
+<form method="post" action="/reset" class="mt-6 space-y-5" id="otp-form">
+  <input type="hidden" name="email" value="{{ email }}">
+  <div class="field"><label>Code from the email</label><div class="otp" id="otp">{% for i in range(6) %}<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" aria-label="Digit {{ i+1 }}" id="otp-{{ i }}">{% endfor %}</div><input type="hidden" name="code" id="otp-value"></div>
+  <div class="field"><label for="password">New password</label><div class="relative"><input id="password" name="password" type="password" required minlength="6" placeholder="At least 6 characters" autocomplete="new-password" class="pr-11"><button type="button" class="eye" onclick="SafeRoad.togglePw('password',this)" aria-label="Show password">{{ icon('eye','w-5 h-5') }}</button></div></div>
+  <button class="btn btn-primary w-full btn-lg" type="submit">Change password</button>
+  <p class="text-center text-sm text-muted">No code? <a href="/forgot" class="link">Send it again</a></p>
+</form>
+{% endcall %}
+{% endblock %}
+{% block scripts %}<script>SafeRoad.otp('otp','otp-value',null);</script>{% endblock %}

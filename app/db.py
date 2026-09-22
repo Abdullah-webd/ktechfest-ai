@@ -20,6 +20,7 @@ db = client[settings.mongodb_db]
 users = db.users
 alerts = db.alerts
 questions = db.questions
+messages = db.messages
 push_subs = db.push_subscriptions
 deliveries = db.deliveries
 media = db.media  # {_id: filename, data: bytes, content_type: str, created_at}
@@ -59,11 +60,20 @@ class User(Doc):
     role: str = "resident"  # resident | responder
     language: str = "en"
     photo_url: Optional[str] = None
-    phone: Optional[str] = None   # responders: shown to residents only while on duty
-    area: Optional[str] = None    # responders: area they usually cover
+    phone: Optional[str] = None
+    area: Optional[str] = None
     on_duty: bool = False
+    verified: bool = False
+    otp_hash: Optional[str] = None
+    otp_expires: Optional[datetime] = None
+    otp_purpose: Optional[str] = None  # verify | reset
+    otp_sent_at: Optional[datetime] = None
     last_active_at: datetime = Field(default_factory=utcnow)
     created_at: datetime = Field(default_factory=utcnow)
+
+    @property
+    def first_name(self) -> str:
+        return self.name.split(" ")[0]
 
 
 class Alert(Doc):
@@ -77,7 +87,6 @@ class Alert(Doc):
     language: str = "en"
     readback_local: str = ""
     translations: dict[str, str] = Field(default_factory=dict)
-    audio_url: Optional[str] = None
     status: str = "open"  # open | closed | unconfirmed | contradicted
     created_at: datetime = Field(default_factory=utcnow)
     expires_at: Optional[datetime] = None
@@ -85,20 +94,33 @@ class Alert(Doc):
 
 class Question(Doc):
     user_id: str
-    transcript: str = ""
     text_en: str = ""
     language: str = "en"
-    intent: str = "question"
     location: str = ""
     category: str = "other"
     status: str = "no_information"
     matched_alert_ids: list[str] = Field(default_factory=list)
-    answer_en: str = ""
-    answer_local: str = ""
-    answer_audio_url: Optional[str] = None
     escalated: bool = False
     contact_responder_id: Optional[str] = None
     resolved_alert_id: Optional[str] = None
+    message_id: Optional[str] = None  # the assistant message that answered it
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Message(Doc):
+    """One bubble in a user's conversation with the agent."""
+    user_id: str
+    role: str = "user"  # user | assistant
+    kind: str = "text"  # text | voice | answer | readback | alert | escalation | update | system
+    text: str = ""            # what is displayed (user's language)
+    text_en: str = ""         # English version for the model's memory
+    language: str = "en"
+    audio_url: Optional[str] = None   # user's voice note, or the assistant's spoken reply
+    status: Optional[str] = None      # confirmed | contradicted | unconfirmed_reports | no_information
+    contact: Optional[dict] = None    # {name, phone, area}
+    alert: Optional[dict] = None      # embedded alert card data
+    question_id: Optional[str] = None
+    alert_id: Optional[str] = None
     created_at: datetime = Field(default_factory=utcnow)
 
 
@@ -127,6 +149,7 @@ async def init_db() -> None:
     await alerts.create_index([("source", ASCENDING), ("status", ASCENDING), ("created_at", DESCENDING)])
     await questions.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
     await questions.create_index([("escalated", ASCENDING), ("resolved_alert_id", ASCENDING), ("created_at", DESCENDING)])
+    await messages.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
     await push_subs.create_index([("endpoint", ASCENDING)], unique=True)
     await push_subs.create_index([("user_id", ASCENDING)])
     await deliveries.create_index([("created_at", DESCENDING)])
