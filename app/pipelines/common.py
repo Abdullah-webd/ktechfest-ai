@@ -26,9 +26,9 @@ def human_ago(dt: datetime) -> str:
         return "just now"
     if m < 60:
         return f"{m} min ago"
-    h = m // 60
+    h, rem = divmod(m, 60)
     if h < 24:
-        return f"{h} h ago"
+        return f"{h} h {rem} min ago" if rem else f"{h} h ago"
     return f"{h // 24} d ago"
 
 
@@ -87,11 +87,11 @@ async def users_by_id(ids: set[str]) -> dict[str, User]:
 async def fmt_alerts(alist: list[Alert]) -> str:
     authors = await users_by_id({a.author_id for a in alist})
     return "\n".join(f"{a.id} · {a.status} · {a.category} · {a.severity} · {a.location or '-'} · {a.summary_en} · by "
-                     f"{authors[a.author_id].name if a.author_id in authors else '?'} · {minutes_ago(a.created_at)} min ago" for a in alist)
+                     f"{authors[a.author_id].name if a.author_id in authors else '?'} · {human_ago(a.created_at)} ({local_time(a.created_at)})" for a in alist)
 
 
 def fmt_reports(alist: list[Alert]) -> str:
-    return "\n".join(f"{a.id} · {a.location or '-'} · {a.summary_en} · {minutes_ago(a.created_at)} min ago" for a in alist)
+    return "\n".join(f"{a.id} · {a.location or '-'} · {a.summary_en} · {human_ago(a.created_at)} ({local_time(a.created_at)})" for a in alist)
 
 
 def fmt_questions(qs: list[Question]) -> str:

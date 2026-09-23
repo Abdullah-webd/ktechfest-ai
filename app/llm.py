@@ -1,4 +1,4 @@
-"""Text reasoning through DeepSeek (OpenAI-compatible chat API), with Gemini as fallback."""
+"""Text reasoning through OpenAI (GPT-5.6, fallback GPT-5.5), then Gemini if OpenAI is unavailable."""
 from __future__ import annotations
 
 import json
@@ -10,8 +10,8 @@ import httpx
 from .config import settings
 
 log = logging.getLogger("saferoad.llm")
-_http = httpx.AsyncClient(base_url="https://api.deepseek.com", timeout=60,
-                          headers={"Authorization": f"Bearer {settings.deepseek_api_key}"})
+_http = httpx.AsyncClient(base_url="https://api.openai.com/v1", timeout=90,
+                          headers={"Authorization": f"Bearer {settings.openai_api_key}"})
 
 
 def _json(text: str) -> dict[str, Any]:
@@ -29,20 +29,21 @@ def _json(text: str) -> dict[str, Any]:
         raise
 
 
-async def complete_json(system: str, user: str, *, temperature: float = 0.2, model: Optional[str] = None, max_tokens: int = 1200) -> dict[str, Any]:
-    """One JSON-mode completion. Tries DeepSeek first, then Gemini if configured."""
-    if settings.deepseek_api_key:
-        for attempt in range(2):
+async def complete_json(system: str, user: str, *, temperature: float = 0.2, model: Optional[str] = None,
+                        max_tokens: int = 1500, effort: str = "low") -> dict[str, Any]:
+    """One JSON-mode completion. GPT-5.6 first, GPT-5.5 next, Gemini last."""
+    if settings.openai_api_key:
+        for m in [model or settings.openai_model, settings.openai_fallback_model]:
             try:
                 r = await _http.post("/chat/completions", json={
-                    "model": model or settings.deepseek_model,
+                    "model": m, "reasoning_effort": effort,
                     "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    "response_format": {"type": "json_object"}, "temperature": temperature, "max_tokens": max_tokens})
+                    "response_format": {"type": "json_object"}, "max_completion_tokens": max_tokens})
                 r.raise_for_status()
                 return _json(r.json()["choices"][0]["message"]["content"])
             except Exception as e:  # noqa: BLE001
-                log.warning("deepseek failed (try %s): %s", attempt + 1, str(e)[:120])
+                log.warning("openai %s failed: %s", m, str(e)[:140])
     if settings.all_gemini_keys:
         from . import gemini
-        return _json(await gemini._generate([system + "\n\n" + user], thinking=gemini.FAST))
+        return _json(await gemini._generate([system + "\n\n" + user], thinking=gemini.CAREFUL))
     raise RuntimeError("no LLM available")

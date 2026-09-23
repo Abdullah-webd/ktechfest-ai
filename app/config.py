@@ -17,8 +17,10 @@ class Settings(BaseSettings):
     mongodb_uri: str
     mongodb_db: str = "saferoad"
     spitch_api_key: str = ""
-    deepseek_api_key: str = ""
-    deepseek_model: str = "deepseek-flash"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.6"
+    openai_fallback_model: str = "gpt-5.5"
+    deepseek_api_key: str = ""  # unused; kept so old env files still load
     demo_resident_email: str = ""
     demo_resident_password: str = ""
     demo_responder_email: str = ""

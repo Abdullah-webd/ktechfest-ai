@@ -38,7 +38,7 @@ async def _recent_questions(user_id: str) -> str:
     lines = []
     for q in qs:
         state = "resolved by a responder" if q.resolved_alert_id else ("escalated, still waiting" if q.escalated else q.status)
-        lines.append(f"{q.id} · {common.minutes_ago(q.created_at)} min ago · {q.location or '-'} · {q.text_en} · {state}")
+        lines.append(f"{q.id} · {common.human_ago(q.created_at)} · {q.location or '-'} · {q.text_en} · {state}")
     return "\n".join(lines)
 
 
