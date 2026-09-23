@@ -54,18 +54,8 @@ async def post_alert(author: User, *, category: str, severity: str, location: st
     if rids:
         await alerts.update_many({"_id": {"$in": rids}}, {"$set": {"status": "closed"}})
 
-    # translate once per language present in the community
     everyone = await find(users, User, {"verified": True})
-    langs = sorted({u.language for u in everyone} | {"en"})
     tr = dict(alert.translations)
-    need = [l for l in langs if not tr.get(l)]
-    if need:
-        try:
-            tr.update(await agent.translate_many(summary_en, need))
-        except Exception:  # noqa: BLE001
-            log.exception("translation failed")
-    alert.translations = tr
-    await update(alerts, alert.id, {"translations": tr})
     card = await common.alert_to_dict(alert, author)
     broker.publish("new_alert", card, audience="all")
 
@@ -86,17 +76,33 @@ async def post_alert(author: User, *, category: str, severity: str, location: st
         q = await get(questions, Question, str(qid))
         if q:
             waiting_ids.add(q.user_id)
-    first = [u for u in everyone if u.id in waiting_ids and u.id != author.id]
-    rest = [u for u in everyone if u.id not in waiting_ids and u.id != author.id]
-    await asyncio.gather(*[_send(u) for u in first])
-    for qid in answers_question_ids or []:
-        await _answer_waiting(str(qid), alert, author)
+    others = [u for u in everyone if u.id != author.id]
+    ready = lambda u: bool(tr.get(u.language))  # noqa: E731  languages we already have (author's + English)
+    first = [u for u in others if u.id in waiting_ids and ready(u)]
+    now_ready = [u for u in others if u.id not in waiting_ids and ready(u)]
+    later = [u for u in others if not ready(u)]
     sem = asyncio.Semaphore(8)
 
     async def _bounded(u: User) -> None:
         async with sem:
             await _send(u)
-    await asyncio.gather(*[_bounded(u) for u in rest])
+
+    # 1. people already covered by an existing translation get it immediately
+    await asyncio.gather(*[_send(u) for u in first])
+    for qid in answers_question_ids or []:
+        await _answer_waiting(str(qid), alert, author)
+    await asyncio.gather(*[_bounded(u) for u in now_ready])
+    # 2. translate once per remaining language, then deliver to the rest
+    need = sorted({u.language for u in later} - set(tr))
+    if need:
+        try:
+            tr.update(await agent.translate_many(summary_en, need))
+        except Exception:  # noqa: BLE001
+            log.exception("translation failed")
+        alert.translations = tr
+        await update(alerts, alert.id, {"translations": tr})
+        card.update(translations=tr)
+    await asyncio.gather(*[_bounded(u) for u in later])
     return alert
 
 
