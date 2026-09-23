@@ -5,3 +5,9 @@ __pycache__/
 data/
 media/
 .DS_Store
+
+# demo media (large, generated)
+demo/*.wav
+demo/*.mp4
+demo/rec/
+demo/__pycache__/

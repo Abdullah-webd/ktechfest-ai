@@ -1,47 +1,67 @@
 {
- "intro": {
+ "stage": {
   "voice": "john",
-  "seconds": 12.37,
-  "text": "This is SafeRoad, an AI agent for community safety. It has two doors. On the left, a responder from the local vigilante group. On the right, a resident, Amara. Both are live right now, with real accounts."
+  "seconds": 14.49,
+  "text": "This is SafeRoad. On the left, Musa, a member of the local vigilante group. On the right, Amara, a resident. The vigilantes always know what is happening first, but until now they had no way to reach everyone. SafeRoad gives them one."
  },
- "post": {
+ "voice_intro": {
   "voice": "john",
-  "seconds": 12.12,
-  "text": "Musa, the responder, sees a fight at the market. He simply holds the mic and speaks Hausa. The agent transcribes it, works out what happened and where, structures it into an alert, and publishes it."
+  "seconds": 4.47,
+  "text": "Musa sees a fight at the market. He holds the mic and speaks Pidgin. Listen."
  },
- "arrive": {
+ "voice_after": {
+  "voice": "john",
+  "seconds": 10.02,
+  "text": "SafeRoad, a multimodal AI agent, understood his voice, turned it into a structured alert, and is delivering it to every resident on the platform, instantly."
+ },
+ "dropped": {
   "voice": "lucy",
-  "seconds": 15.38,
-  "text": "On Amara's side the alert has already arrived, translated into her own language, with the responder's name and the exact time. If she has installed SafeRoad, her phone buzzes even when the app is closed. That is why it installs from the browser in one tap."
+  "seconds": 9.15,
+  "text": "As you can see, it has dropped on Amara's side, in her own language, with Musa's name and the time. And if she taps Listen, the agent reads it out to her."
+ },
+ "nopanic": {
+  "voice": "lucy",
+  "seconds": 5.04,
+  "text": "No panic, no rumour. Every word from the vigilante reaches every resident, live."
+ },
+ "clear": {
+  "voice": "john",
+  "seconds": 2.81,
+  "text": "And when the coast is clear, Musa just says so."
+ },
+ "cleared": {
+  "voice": "lucy",
+  "seconds": 4.78,
+  "text": "The all-clear reaches Amara the same way. Everyone knows the moment it is over."
  },
  "rumour": {
   "voice": "lucy",
-  "seconds": 9.27,
-  "text": "Now the real problem. A cousin forwards a message: the whole town is under attack. Amara does not know if it is true. She just forwards it to the agent."
+  "seconds": 7.69,
+  "text": "Now a friend forwards Amara a message: there is a fight at Ikorodu bus stop. Instead of guessing, she forwards it to her agent."
  },
- "verified": {
+ "agent": {
   "voice": "lucy",
-  "seconds": 12.55,
-  "text": "The agent checks it against what responders have actually confirmed. There is a fight at the market, confirmed by Musa minutes ago. Nothing about an attack on the town. It says so, and it names its source."
+  "seconds": 10.59,
+  "text": "No responder has reported that. So the agent says so honestly, and immediately asks the vigilante on duty. And if Amara cannot wait, she gets a button to call him directly."
  },
- "unknown": {
+ "musa": {
+  "voice": "john",
+  "seconds": 4.54,
+  "text": "Amara's question arrives in Musa's chat in real time. He checks, and replies."
+ },
+ "confirmed": {
   "voice": "lucy",
-  "seconds": 11.7,
-  "text": "She asks about a road nobody has reported. The agent will not guess. It says no responder has reported anything, escalates the question, and offers a direct call to the responder on duty."
- },
- "escalate": {
-  "voice": "john",
-  "seconds": 5.82,
-  "text": "Musa's chat lights up with her question in real time. He replies from the road, in his own words."
- },
- "resolve": {
-  "voice": "john",
-  "seconds": 8.25,
-  "text": "And Amara is told automatically, with his name and the time. Every alert and every answer carries who said it and when. No guesses."
+  "seconds": 6.22,
+  "text": "And Amara gets his confirmation in real time, with his name and the time. No more misinformation."
  },
  "outro": {
+  "voice": "john",
+  "seconds": 7.63,
+  "text": "SafeRoad. A multimodal AI agent that lets a community speak in any language, and get verified information in real time."
+ },
+ "live": {
   "voice": "lucy",
-  "seconds": 10.96,
-  "text": "Too much noise, too little verified signal, and no time. SafeRoad turns responders' words into verified answers for a whole town, in seconds, in your language. SafeRoad."
+  "seconds": 7.7,
+  "text": "SafeRoad is live and fully working right now, at the address on your screen. Log in with the demo accounts and try it yourself."
  }
 }
