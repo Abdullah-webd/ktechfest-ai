@@ -38,7 +38,7 @@ Every answer is one of four honest states, always with **who** and **when**:
 
 - **🎤 Voice in, voice out.** Hold the mic and speak. The agent transcribes, understands, and replies in text *and* in a native Nigerian voice. No typing needed.
 - **🌍 Your own language.** Yorùbá, Hausa, Igbo, Nigerian Pidgin and English. Language is detected per message, so a Hausa voice note from a responder becomes a Yorùbá alert for one resident and an English one for another.
-- **🤖 An agent that acts, not a chatbot.** Every message goes through a reasoning model that plans and runs tools: `post_alert`, `verify_rumour`, `escalate_to_responders`, `connect_on_duty`, `translate`, `all_clear`, `file_resident_report`.
+- **🤖 An agent that acts, not a chatbot.** Every message goes through GPT‑5.6, which reasons about place, time and trust, then plans and runs tools: `post_alert`, `verify_rumour`, `escalate_to_responders`, `connect_on_duty`, `translate`, `all_clear`, `file_resident_report`.
 - **⚡ Real time.** Alerts land in every resident's chat the moment a responder posts, over a live connection, plus **push notifications** that work even with the app closed.
 - **📱 Installs from the browser.** A progressive web app: one tap on Android, "Add to Home Screen" on iPhone. No app store, no download.
 - **🧠 Context.** "Any update?" and "Is it over?" are understood as follow‑ups to what you asked before. The agent remembers your conversation and your open questions.
@@ -84,7 +84,7 @@ Or create your own account. Responder signup uses the invite code shown on the p
 - **Backend:** Python, FastAPI, Server‑Sent Events for live updates, Web Push (VAPID) for notifications.
 - **Data:** MongoDB Atlas (users, conversations, alerts, questions, media).
 - **Speech:** [Spitch](https://spitch.app) for Nigerian‑language speech‑to‑text and text‑to‑speech.
-- **Reasoning:** DeepSeek (JSON tool planning), with Google Gemini as fallback.
+- **Reasoning:** OpenAI GPT‑5.6 (plans the reply and the tools to run, JSON mode), GPT‑5.5 as fallback, Google Gemini as last resort.
 - **Email:** Resend, for one‑time verification and password‑reset codes.
 - **Front end:** server‑rendered HTML with Tailwind, a small vanilla‑JS client (raw microphone capture to WAV, no browser speech APIs), service worker, installable PWA.
 - **Hosting:** Railway.
@@ -95,7 +95,7 @@ Or create your own account. Responder signup uses the invite code shown on the p
 git clone https://github.com/Abdullah-webd/saferoad.git && cd saferoad
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # fill in MongoDB, Spitch, DeepSeek, Resend, VAPID keys
+cp .env.example .env        # fill in MongoDB, Spitch, OpenAI, Resend, VAPID keys
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -107,7 +107,7 @@ Generate VAPID keys once with `vapid --gen` (from `py-vapid`). Push notification
 app/
   main.py            routes: auth (OTP, reset), chat, alerts, profile, admin, APIs, SSE
   agent.py           the agent's system prompt, tool decisions, translation
-  llm.py             DeepSeek client (JSON mode) with Gemini fallback
+  llm.py             OpenAI GPT-5.6 client (JSON mode) with GPT-5.5 and Gemini fallbacks
   speech.py          Spitch transcription (chunked, dual candidates) and speech
   notify.py          live-event broker + Web Push delivery
   pipelines/
