@@ -1,0 +1,47 @@
+{
+ "intro": {
+  "voice": "john",
+  "seconds": 12.37,
+  "text": "This is SafeRoad, an AI agent for community safety. It has two doors. On the left, a responder from the local vigilante group. On the right, a resident, Amara. Both are live right now, with real accounts."
+ },
+ "post": {
+  "voice": "john",
+  "seconds": 12.12,
+  "text": "Musa, the responder, sees a fight at the market. He simply holds the mic and speaks Hausa. The agent transcribes it, works out what happened and where, structures it into an alert, and publishes it."
+ },
+ "arrive": {
+  "voice": "lucy",
+  "seconds": 15.38,
+  "text": "On Amara's side the alert has already arrived, translated into her own language, with the responder's name and the exact time. If she has installed SafeRoad, her phone buzzes even when the app is closed. That is why it installs from the browser in one tap."
+ },
+ "rumour": {
+  "voice": "lucy",
+  "seconds": 9.27,
+  "text": "Now the real problem. A cousin forwards a message: the whole town is under attack. Amara does not know if it is true. She just forwards it to the agent."
+ },
+ "verified": {
+  "voice": "lucy",
+  "seconds": 12.55,
+  "text": "The agent checks it against what responders have actually confirmed. There is a fight at the market, confirmed by Musa minutes ago. Nothing about an attack on the town. It says so, and it names its source."
+ },
+ "unknown": {
+  "voice": "lucy",
+  "seconds": 11.7,
+  "text": "She asks about a road nobody has reported. The agent will not guess. It says no responder has reported anything, escalates the question, and offers a direct call to the responder on duty."
+ },
+ "escalate": {
+  "voice": "john",
+  "seconds": 5.82,
+  "text": "Musa's chat lights up with her question in real time. He replies from the road, in his own words."
+ },
+ "resolve": {
+  "voice": "john",
+  "seconds": 8.25,
+  "text": "And Amara is told automatically, with his name and the time. Every alert and every answer carries who said it and when. No guesses."
+ },
+ "outro": {
+  "voice": "lucy",
+  "seconds": 10.96,
+  "text": "Too much noise, too little verified signal, and no time. SafeRoad turns responders' words into verified answers for a whole town, in seconds, in your language. SafeRoad."
+ }
+}

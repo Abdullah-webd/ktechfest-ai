@@ -1,6 +1,7 @@
 """Tools the agent can run. Each one changes the world: publishes alerts, notifies people, files reports."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Optional
@@ -70,9 +71,8 @@ async def post_alert(author: User, *, category: str, severity: str, location: st
 
     icon = "✅" if is_clear else ("🚨" if alert.severity == "danger" else "⚠️")
     prefix = {"danger": "DANGER", "caution": "Caution", "info": "Update"}.get(alert.severity, "Alert")
-    for u in everyone:
-        if u.id == author.id:
-            continue
+
+    async def _send(u: User) -> None:
         body = tr.get(u.language) or summary_en
         msg = Message(user_id=u.id, role="assistant", kind="alert", text=body, text_en=summary_en, language=u.language,
                       alert=card, alert_id=alert.id)
@@ -80,8 +80,23 @@ async def post_alert(author: User, *, category: str, severity: str, location: st
                                     "body": f"{body}\n— {author.name}, {common.local_time(alert.created_at)}",
                                     "tag": f"alert-{alert.id}"})
 
+    # people who were waiting on this get their alert and their answer first
+    waiting_ids: set[str] = set()
+    for qid in answers_question_ids or []:
+        q = await get(questions, Question, str(qid))
+        if q:
+            waiting_ids.add(q.user_id)
+    first = [u for u in everyone if u.id in waiting_ids and u.id != author.id]
+    rest = [u for u in everyone if u.id not in waiting_ids and u.id != author.id]
+    await asyncio.gather(*[_send(u) for u in first])
     for qid in answers_question_ids or []:
         await _answer_waiting(str(qid), alert, author)
+    sem = asyncio.Semaphore(8)
+
+    async def _bounded(u: User) -> None:
+        async with sem:
+            await _send(u)
+    await asyncio.gather(*[_bounded(u) for u in rest])
     return alert
 
 
