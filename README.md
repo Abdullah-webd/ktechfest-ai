@@ -92,7 +92,7 @@ Or create your own account. Responder signup uses the invite code shown on the p
 ## Run locally
 
 ```bash
-git clone https://github.com/Abdullah-webd/ktechfest-ai.git && cd ktechfest-ai
+git clone https://github.com/Abdullah-webd/saferoad.git && cd saferoad
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # fill in MongoDB, Spitch, DeepSeek, Resend, VAPID keys
