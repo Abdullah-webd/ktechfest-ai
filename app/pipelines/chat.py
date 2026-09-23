@@ -106,11 +106,12 @@ async def handle_turn(*, user: User, text: Optional[str], audio: Optional[bytes]
 
     # 5. store the reply first so the person sees it immediately, then run tools + voice in the background
     status = r.get("status") if r.get("status") not in (None, "", "n/a") else None
+    intent = r.get("intent") or "question"
     reply = Message(user_id=user.id, role="assistant", kind="answer", text=r.get("reply") or "", text_en=r.get("reply_en") or r.get("reply") or "",
                     language=lang, status=status)
     tool_calls = r.get("tools") or []
-    if user.role == "resident" and contact and any(t.get("name") == "escalate_to_responders" for t in tool_calls):
-        reply.contact = common.contact_to_dict(contact)
+    if user.role == "resident" and contact and (intent in ("question", "report") or any(t.get("name") == "escalate_to_responders" for t in tool_calls)):
+        reply.contact = common.contact_to_dict(contact)   # call button whenever a responder is on duty and it is a safety matter
     await tools.deliver(user, reply)
 
     spawn(_run_tools(user, r, reply, lang, transcript))
